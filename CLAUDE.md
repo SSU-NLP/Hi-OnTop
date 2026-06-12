@@ -78,7 +78,7 @@ Hi-OnTop은 SEM / SEM2 계승 모델이다. **SEM(원논문) / SEM2(`nicktfrankl
 
 신규 component 제안이 들어오면 Claude의 default 응답은 **"SEM에 있나?"** — 없으면 위 세 단계의 정당화 부담을 그 제안에 얹은 채로만 검토한다.
 
-이유: SEM 계승이라는 정체성을 잃으면 Hi-OnTop은 그저 "임의로 조합된 retrieval heuristic"이 된다. 새 메커니즘은 SEM에서 빠진 기능을 복원하거나, SEM 가정의 한계를 명시적으로 인정한 위에서만 추가한다.
+이유: SEM 계승이라는 정체성을 잃으면 Hi-OnTop은 그저 "임의로 조합된 분절 휴리스틱"이 된다. 새 메커니즘은 SEM에서 빠진 기능을 복원하거나, SEM 가정의 한계를 명시적으로 인정한 위에서만 추가한다.
 
 ## Step 완료 프로토콜 (최상위 강제 규칙)
 
@@ -209,7 +209,7 @@ archive/                  # *의도적으로 폐기* 한 것만 (시간 흐름 �
 - topic state 의 모든 필드, hyperparameter default
 - SEM 계승 측면 (있는 것 / 없는 것 / 변형한 것)
 - 알려진 한계 + 변형 후보 (적용 안 했어도 "고려 중인 변형" 섹션에 누적)
-- cross-cutting 인프라 (`EncoderCache`, `HiOnTopConvCache`, encoder lock, LLM 호환 플래그(`--no-thinking`), retrieval policy, STM atomicity 등)
+- cross-cutting 인프라 (`EncoderCache`, `HiOnTopConvCache`, encoder lock·int8 양자화, de-neut/δ_eff 신호 config, 적응 임계·reset(threshold/commit-refine)·버퍼 정책, LLM 호환 플래그(`--no-thinking`) 등)
 
 규칙:
 - 버전마다 1 파일 (`vX.md`). 새 버전 추가 시 직전 버전 파일을 템플릿 삼아 같은 구조 유지.
@@ -228,12 +228,11 @@ Claude Code가 파일 1개를 수정·생성·삭제할 때마다 **다른 파�
 - `context/methodology/*` — **최우선** (알고리즘·인프라 변경 시). 위 § 참조.
 - `README.md` — 디렉토리 구조, 외부 레포, gitignored 목록, 현재 상태
 - `plan.md` — 체크박스, Phase 진행률, 결과 수치
-- `handoff.md` — 현재 상태, 다음 할 일, 마지막 업데이트 날짜
+- `handoff/HANDOFF_*.md` — 해당 문제의 시도·조건·결과·설계 결정 (📋 handoff 규칙 참조)
 - `context/04-benchmarks.md` — 데이터 / 평가 축 변경 시
 - `context/03-architecture.md` — 모듈·파일 추가/삭제·이름 변경 시
 - `context/06-decision-log.md` — 설계 결정 변경 시 (append-only)
 - `context/sem-equations.md` — SEM 식 관련 작업 시
-- `report.md` — Phase 결과·미해결 사항 변경 시
 - `.gitignore` — 새 파일 패턴 추가/제거 시
 
 검사 방법:
@@ -252,7 +251,7 @@ Claude Code가 파일 1개를 수정·생성·삭제할 때마다 **다른 파�
 - 체크 시점에 stdout 마지막, exit status, results 디렉토리 (`results/experiments/<exp-id>/checkpoints/latest.json` 또는 `summary.json`) 셋 다 확인
 - 진행 정상이면 다음 점검(또 10분 이내) 예약, 정체/오류면 **즉시 사용자에게 보고**
 
-이유: vLLM 멈춤·STM 폭주·OOM·import error 등 silent failure가 발생해도 사용자가 모르고 기다리는 일을 막는다. 한 번 시작하고 던져두지 않는다.
+이유: 인코더/추론 멈춤·과분절 폭주·OOM·import error 등 silent failure가 발생해도 사용자가 모르고 기다리는 일을 막는다. 한 번 시작하고 던져두지 않는다.
 
 ## Figure 저장 규칙 (최상위 강제 규칙, 2026-05-25)
 
