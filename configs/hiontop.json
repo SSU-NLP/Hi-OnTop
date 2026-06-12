@@ -1,0 +1,11 @@
+{
+  "_comment": "Hi-OnTop 알고리즘 hyperparameters. 자격증명/환경/model은 .env, CLI 인자가 최우선. CLI > 이 파일 > 코드 default. _key는 주석.",
+
+  "segmenter": {
+    "_doc": "sCRP + Gaussian likelihood (option A). persistence vs freq-shift regime.",
+    "alpha": 1.0,
+    "lmda": 10.0,
+    "sigma0_sq": 0.01,
+    "_regime": "persistence — freq-shift(α=10, λ=1, σ²=0.1) 비교 sweep 대상"
+  }
+}

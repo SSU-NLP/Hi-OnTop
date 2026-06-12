@@ -1,0 +1,53 @@
+[project]
+name = "hi-ontop"
+version = "0.1.0"
+description = "Hi-OnTop: Human-inspired Episodic Memory for LLM Conversations (no fine-tuning add-on)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Hi-OnTop" }]
+dependencies = [
+    # Core: Phase 1 구현 (sCRP + 사건 모델 + bge 임베딩)
+    "torch>=2.0",
+    # transformers 4.55+ / sentence-transformers 5.x는 lazy import 체인 이슈로
+    # 3.9 깨짐. v4.45 + v3.1 조합이 검증된 쌍. (requirements.txt 주석에서 이전)
+    "sentence-transformers>=3.0,<4.0",
+    "transformers>=4.40,<4.50",
+    "numpy>=1.24",
+    # Phase 0 도구 — SEM 논문 / 벤치마크 데이터 처리
+    "pypdf>=5.0",
+    "wget>=3.2",
+    # Phase 3+ LLM 호출 (OpenAI-compatible: OpenRouter / vLLM / OpenAI 본가)
+    # 백엔드 결정 근거: memory/project_llm_backend.md
+    "openai>=1.30",
+    # entry point 스크립트가 .env 자격증명 로드 (라이브러리 코드는 사용 안 함)
+    "python-dotenv>=1.0",
+    "wandb>=0.26.1",
+    # LoCoMo F1 metric: porter stemming. Upstream
+    # benchmarks/locomo/task_eval/evaluation.py uses nltk.PorterStemmer;
+    # we require it for numeric parity with the official metric.
+    "nltk>=3.8",
+    "matplotlib>=3.10.9",
+    "segeval>=2.0.11",
+    "networkx>=3.4.2",
+    "scipy>=1.15.3",
+    "optimum>=2.1.0",
+    "onnxruntime>=1.24.3",
+    "optimum-onnx>=0.1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hi_ontop"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv]
+# uv-managed Python (lzma 등 stdlib 빌드 누락 회피, .venv는 매번 같은 인터프리터)
+python-preference = "only-managed"

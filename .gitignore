@@ -1,0 +1,128 @@
+setup_colab.ipynb
+__pycache__/
+*.pyc
+.DS_Store
+
+# 외부 벤치마크 레포 (각자 clone) — handoff.md 지침 참조
+benchmarks/locomo/
+benchmarks/topiocqa/
+benchmarks/LongMemEval/
+benchmarks/tiage/
+
+# 데이터 / 실험 산출물 (분석 md는 track, 대용량/로그만 제외)
+outputs/*.npy
+outputs/*.pkl
+outputs/*.npz
+outputs/*.h5
+outputs/*.pdf
+outputs/*.jsonl
+outputs/*.wandb-run-id
+outputs/tmp/
+outputs/_smoke_*
+*.log
+.venv/
+
+# LTM 영속 저장 — per-conversation jsonl + state.json (context/01-hi-em-design.md §9.1)
+
+# 환경변수 (자격증명) — .env.example는 tracked
+.env
+
+# PDF 텍스트 덤프 (작업 보조)
+sem.txt
+
+# Claude Code local settings
+.claude/
+.codex
+.codex/
+
+SEM/
+
+wandb
+
+# Phase 4-Re research-experiment-infrastructure: experiment-level data is local-only.
+# Sessions are tracked (config snapshot is part of the project), but experiments + replays
+# can be huge (per-question jsonl × hundreds of runs).
+
+# Archive — only README.md tracked. Raw runs (working_state, rounds, checkpoints,
+# wandb-run-id, etc.) are gitignored.
+archive/*/ltm/
+archive/*/outputs/*.jsonl
+archive/*/outputs/*.json
+archive/*/outputs/*.wandb-run-id
+archive/*/working_state/
+archive/*/*/working_state/
+archive/*/rounds/
+archive/*/*/rounds/
+archive/*/checkpoints/
+archive/*/*/checkpoints/
+archive/*/*/wandb-run-id.txt
+archive/*/*/completed.json
+archive/*/*/experiment.json
+archive/*/*/summary.json
+
+# outputs/experiments — only REPORT.md (and explicit context md) tracked.
+# Raw run data (results/, run.log, stm_topk, working_state, rounds, checkpoints) ignored.
+outputs/runs/
+outputs/experiments/*/*.json
+outputs/experiments/*/*.jsonl
+outputs/experiments/*/stm_topk*
+outputs/experiments/*/*/results/
+outputs/experiments/*/*/run.log
+outputs/experiments/*/*/stm_topk*
+outputs/experiments/*/*/*.json
+outputs/experiments/*/*/*.jsonl
+outputs/experiments/*/*/*/results/
+outputs/experiments/*/*/*/run.log
+outputs/experiments/*/*/*/stm_topk*
+outputs/experiments/*/*/*.csv
+outputs/experiments/*/*.csv
+outputs/experiments/*/*.txt
+outputs/experiments/*/*/exit_code.txt
+outputs/experiments/*/*/*/exit_code.txt
+outputs/experiments/*/*/working_state/
+outputs/experiments/*/*/rounds/
+outputs/experiments/*/*/checkpoints/
+# trained model checkpoints (e.g. methods/RoBERTa/offline/train.py)
+outputs/experiments/*/model/
+outputs/experiments/*/*/model/
+
+# General catch-all for raw experiment artifacts wherever they appear
+**/working_state/
+**/rounds/round_*/
+**/checkpoints/latest.json
+**/checkpoints/round_*/
+benchmarks/superdialseg/
+benchmarks/superdialseg_data/
+
+# external clones / datasets / one-off (push 제외, 재현가능)
+benchmarks/Def-DTS/
+benchmarks/EMNLP_dataset/
+/dailydialog_original.zip
+benchmarks/CSM train/
+benchmarks/glove/
+
+# external repos (clone-based, not vendored)
+external/
+benchmarks/SeCom/
+
+# raw datasets / extracted outside benchmarks/ (not vendored)
+data/
+dd_extract/
+
+# secom-swap intermediate temp config (auto-regenerated)
+benchmarks/SeCom/secom/configs/_*_only_tmp.yaml
+
+# Model checkpoints (download externally, do not commit)
+methods/RoBERTa/_roberta_unzip/
+methods/CSM/*.pth
+methods/CSM/*.safetensors
+
+# Embedding caches
+outputs/experiments/2026-05-25_llm_distillation_calib/*.pkl
+outputs/experiments/*/emb_*.pkl
+
+# external benchmark clone (read-only, clone separately — see README)
+benchmarks/RealtimeSTT/
+# nested embedding caches (any pkl/npy under experiment dirs)
+outputs/experiments/**/*.pkl
+outputs/experiments/**/*.npy
