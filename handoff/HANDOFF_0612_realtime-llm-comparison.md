@@ -17,6 +17,9 @@
 ablation(§3i)·자매 handoff 0609 의 평가축이며, LLM 프롬프트는 DTS+AMI 공통(turn기반)으로 일반화해 둠(향후 DTS 확장 대비).
 
 > ## 📦 데이터·gold 정의 (📎 논문 data 섹션·재현)
+> - **출처 = AMI Meeting Corpus 공식 배포본** — **https://groups.inf.ed.ac.uk/ami/download/** 의
+>   **Manual Annotations release 1.7**(NITE/NXT-XML, amiproject.org/Edinburgh). 우리 `ami_topic_prep.py` 가 그 공식
+>   주석(`data/ami/annotations/`)을 파싱해 `data/ami/topic/*.json` 생성. **gcunhase/AMICorpusXML 등 제3자 변환본 아님.**
 > - **AMI 139 미팅** (`data/ami/topic/<mid>.json`). 시리즈: **ES 57 / IS 38 / TS 40 / IB 4**(IB=비시나리오).
 >   총 **62,678 턴**, 미팅당 turn [76, 1194] median 409.
 > - **turn 단위** = `{start(초, 발화 시작 timestamp), speaker, text}`. start 는 **버퍼 windowing + RTF audio 길이 근사**에 사용.

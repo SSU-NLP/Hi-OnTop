@@ -3,8 +3,8 @@
 
 edinburghcstr/ami 의 IHM test parquet 은 발화(utterance) 단위로 저장돼 있다
 (meeting_id, audio_id, text, audio[16kHz wav bytes], begin_time, end_time,
-speaker_id). RealtimeSTT 스트리밍 시뮬레이션을 위해 한 미팅의 모든 발화를
-begin_time 기준 타임라인에 배치해 **연속 단일 스트림** WAV 로 재구성한다.
+speaker_id). 한 미팅의 모든 발화를 begin_time 기준 타임라인에 배치해
+**연속 단일 스트림** WAV + gold reference transcript 로 재구성한다.
 
 - 겹치는 헤드셋 채널은 합산(sum) 후 [-1,1] 클립 (IHM cross-talk 낮아 무해).
 - reference transcript = begin_time 정렬 발화 텍스트 join.

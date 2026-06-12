@@ -147,7 +147,6 @@ Colab 에서 자동 clone + 의존성 핀 + STEP-RESUME 패치.
 | 레포 | 용도 |
 |---|---|
 | https://github.com/flippedAben/texttiling | TextTiling online 구현 참고 |
-| https://github.com/KoljaB/RealtimeSTT | 실시간 STT (AMI streaming 평가용) |
 
 ---
 

@@ -121,8 +121,6 @@ methods/CSM/*.safetensors
 outputs/experiments/2026-05-25_llm_distillation_calib/*.pkl
 outputs/experiments/*/emb_*.pkl
 
-# external benchmark clone (read-only, clone separately — see README)
-benchmarks/RealtimeSTT/
 # nested embedding caches (any pkl/npy under experiment dirs)
 outputs/experiments/**/*.pkl
 outputs/experiments/**/*.npy
