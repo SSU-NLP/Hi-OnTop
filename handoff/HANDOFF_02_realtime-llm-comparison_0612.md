@@ -28,10 +28,13 @@ ablation(§3i)·자매 handoff 0609 의 평가축이며, LLM 프롬프트는 DTS
 > - 계층-level 분석(§3e/§3z F): top vs all 양쪽 정합 보고 — Hi-OnTop 강점(세밀 sub-topic 도 포착).
 
 > ## 📟 측정 환경 (하드웨어 — 📎 논문 reproducibility, latency 는 머신 의존)
-> - **GPU: 2장 붙어있으나(/dev/nvidia0,1, 드라이버 580.82.07) NVML 초기화 막힘** ("Failed to initialize NVML: Unknown Error").
->   디바이스·드라이버·libnvidia-ml 버전 다 일치하는데 NVML 만 죽음 = **호스트 cgroup/런타임 이슈**(흔히 컨테이너 시작 후
->   호스트 daemon-reload 가 GPU cgroup 권한 박탈). 컨테이너 내부 해결 불가 → **호스트에서 `--gpus all` 로 재기동** 필요.
->   현재 onnxruntime providers = **CPU 만**(CUDAExecutionProvider 없음). → **모든 latency 는 CPU 측정**(GPU 살면 재측정·별도 표기).
+> - **GPU: NVML 복구됨(2026-06-12) — `nvidia-smi` 정상 작동.** handoff 작성시의 "Failed to initialize NVML: Unknown Error"
+>   (호스트 cgroup/daemon-reload 로 GPU cgroup 권한 박탈 추정)는 **해소**. 하드웨어 = **NVIDIA RTX PRO 6000 Blackwell ×2**
+>   (각 **~96GB**, 드라이버 580.82.07 / CUDA 13.0). **`torch.cuda.is_available()=True, device_count=2`.** 단 **GPU0 은
+>   외부(다른 컨테이너/호스트)가 ~94GB 점유 중**(우리 프로세스 아님, util 0%) → 우리 가용분은 **GPU1**(242MB, 거의 빔).
+> - ⚠️ **현재 onnxruntime 1.26.0 = CPU 빌드**(providers=`[Azure, CPU]`, **CUDAExecutionProvider 없음**) → 인코더(MiniLM int8
+>   ONNX)는 NVML 복구와 무관하게 **아직 CPU 추론**. GPU 가속하려면 **`onnxruntime-gpu` 설치** 필요. → **현 latency 는 여전히
+>   CPU 측정**(이유가 NVML→onnxruntime 빌드로 바뀜). onnxruntime-gpu 도입 시 encode 한 자릿수 ms 가능(재측정·별도 표기).
 > - **CPU: AMD Ryzen Threadripper PRO 7965WX** (24코어 / 48스레드, x86_64). **RAM 251 GB**.
 > - 인코더(MiniLM int8 ONNX) CPU 추론, Hi-OnTop·비-LLM baseline latency 전부 이 머신 CPU. API LLM 은 remote.
 > - ⚠️ latency 는 머신 의존 → fair-table 은 **전 메서드 동일 머신**(현 CPU)에서 재측정. GPU 가용 시 encode 한 자릿수 ms 가능(별도 표기).
@@ -45,20 +48,22 @@ ablation(§3i)·자매 handoff 0609 의 평가축이며, LLM 프롬프트는 DTS
   0 호출·~ms latency 로 달성, (c) full-context LLM 만 이기되 무한 look-ahead 비용을 치름 — 을 지표로 입증.
 
 ## 1. 비교 설계
-> **교차참조 (중복 금지)**: Hi-OnTop **알고리즘/수식 스펙** = `context/methodology/hi-ontop-cr.md`(de-neut V·적응-β·
+> **교차참조 (중복 금지)**: Hi-OnTop **알고리즘/수식 스펙** = `context/methodology/hi-ontop-deneut.md`(de-neut V·적응-β·
 > commit-refine 정식화, 단일 진실원천). **신호 발견·oracle 천장·deploy reset 부트스트랩 스토리** = 자매 handoff
 > `HANDOFF_0609_deploy-oracle-gap.md`(축1 신호 성공 / 축2 deploy 미해결). 본 handoff 는 그 위에서의 **LLM 비교 실험**만.
 - **Hi-OnTop**: MiniLM-int8(인코더 고정) + de-neut V + 적응임계 μ+cσ. 0-look-ahead, LLM 0콜.
-  **본 비교 = `threshold`(0-lag, Score 0.372/139) 단일** (`src/hi_ontop/hi_ontop_cr.py` `segment(reset='threshold')`).
+  **본 비교 = `threshold`(0-lag, Score 0.372/139) 단일** (`src/hi_ontop/hi_ontop_deneut.py` `segment(reset='threshold')`).
   (`commit_refine`(L=8 lag, 0.401)는 코드에 남아있으나 **본 비교 미사용 — 버퍼/lag 원치 않아 폐기**.)
   - 📎 **재현 config (appendix, 본 비교에서 고정)**: 인코더 `sentence-transformers/all-MiniLM-L6-v2`, **8비트 양자화됨**
     (ONNX quint8 = fp32→uint8 동적양자화, `onnx/model_quint8_avx2.onnx`, SentenceTransformer ONNX backend, CPU/AVX2), 단위정규화.
-    HP `DEFAULTS`(`hi_ontop_cr.py`, threshold 경로): c=1.0, A=2.0, B=1.0, L0=8, λ=0.6, g_rho=0.15, rho_min=0.05,
+    HP `DEFAULTS`(`hi_ontop_deneut.py`, threshold 경로): c=1.0, A=2.0, B=1.0, L0=8, λ=0.6, g_rho=0.15, rho_min=0.05,
     R=4, warmup=8, m_min=2. c·δ **calibration-free**(고정 c=1.0), seed=0.
 - **LLM baseline 7모델 (확정 2026-06-12, 전 실험 공통)**: `openrouter/` 경유 Crts —
-  openai/gpt-5-mini, openai/gpt-5-nano, qwen/qwen3.5-27b, anthropic/claude-haiku-4.5,
+  openai/gpt-4o:nitro, openai/gpt-4o-mini, qwen/qwen3.5-27b, anthropic/claude-haiku-4.5,
   mistralai/mistral-small-3.1-24b-instruct, google/gemma-3-12b-it, google/gemma-3n-e4b-it.
-  (변경 2026-06-12: gpt-4o:nitro·gpt-4o-mini 제외 → gpt-5-mini·gpt-5-nano·gemma-3n-e4b-it 추가. phi-4류[Microsoft] 계속 제외.)
+  **전 모델 non-reasoning** → no-thinking·temp 0 균일조건 충족.
+  (모델 선정 기준: 전부 non-reasoning 으로 통일해 temp 0·no-thinking 균일조건을 충족시킴. reasoning 계열은 temp 0 미지원 +
+  thinking 완전 비활성 불가라 균일조건을 못 지켜 배제. phi-4류[Microsoft] 도 제외.)
   → `secom_sweep.sh`/`secom_latency_full.py` MODELS 동기화. 겹치는 모델(qwen/haiku/mistral/gemma-3-12b) 캐시 재사용.
   **프롬프트 = SeCom 정식 instruction**(home-made 폐기), baseline(우리 적응본)+verbatim(SeCom 원본) 둘 다 — 상세 **§1A**.
 - **latency**: 입력버킷 샘플 ❌ → 실제 워크로드 콜 N=1 fresh, **latency 전용 18-미팅 subset 內 전수**(content-independence
@@ -78,8 +83,9 @@ appendix 에는 아래 4개 파일 **전문(全文)** 을 그대로 싣는다.
 
 | 계열 | 모드 | 파일 (`scripts/secom_prompts/`) | look-ahead | 출처/성격 |
 |---|---|---|---|---|
-| **baseline**(우리 적응본, 기본) | offline/buffer 분절 | `baseline_segment.md` (3118자) | 청크 전체 | SeCom `segment_turn` 구조를 **turn 기반·multi-party 일반화**(DTS 2자 + AMI 멀티파티 공통) |
-| **baseline** | online incremental | `baseline_incremental.md` (1538자) | **0** | 위 구조를 **per-turn Yes/No** 결정으로 확장(우리 작성) |
+| **baseline**(우리 적응본, 기본) | offline/buffer 분절 | `baseline_segment_v1.md` (3118자) | 청크 전체 | SeCom `segment_turn` 구조를 **turn 기반·multi-party 일반화**(DTS 2자 + AMI 멀티파티 공통) |
+| **baseline v2**(요약-carryover, streaming) | streaming continuation | `baseline_segment_v2.md` | **0 (청크만)** | v1 출력형식·partition 규율 유지 + **prior segment summary carryover + continues_previous** 만 추가(긴 미팅 후반부 붕괴 완화용) |
+| **baseline** | online incremental | `baseline_incremental_v1.md` (1538자) | **0** | 위 구조를 **per-turn Yes/No** 결정으로 확장(우리 작성) |
 | **verbatim**(SeCom 원본) | offline/buffer 분절 | `segment_exchange.md` (3275자) | 청크 전체 | SeCom 원본 `segment_with_exchange_number`(user-bot exchange 번호) **그대로** |
 | **verbatim** | online incremental | `segment_incremental.md` (318자, 5줄) | **0** | SeCom 레포 원본 incremental Yes/No **그대로** |
 
@@ -108,23 +114,33 @@ appendix 에는 아래 4개 파일 **전문(全文)** 을 그대로 싣는다.
 | 안 | 버퍼드 LLM 입력 | 과예측 | 비용 | 공정성 |
 |---|---|---|---|---|
 | A. 버퍼만(구) | B초 슬라이스만, window 독립 | 심함 | 쌈 | 약함(굶김) |
-| **B. 누적 전체 ✅채택** | **0~현재까지 전부 + 새 B** | 적음 | **폭증**(컨텍스트↑) | **강함** |
-| C. 요약+버퍼 | 직전 요약 + 새 B | 중간 | 유계 | 중간 |
+| **B. 누적 전체 ✅채택** (→ **v1** `baseline_segment_v1.md`) | **0~현재까지 전부 + 새 B** | 적음 | **폭증**(컨텍스트↑) | **강함** |
+| C. 요약+버퍼 (→ **v2** `baseline_segment_v2.md`) | 직전 요약 + 새 B | 중간 | 유계 | 중간 |
 
 - **채택 = B(누적)**. 공정성(LLM 에 최대 맥락) + 과예측 해소. 비용 폭증(누적 prefix → 입력 토큰 ~quadratic↑)은 오히려
   우리 **cost-latency 우위** 주장을 강화(SeCom 이 latency 때문에 피한 그 지점).
+
+- **⚠️ 갱신(2026-06-12) — B-mode 의 "후반부 붕괴" 발견 → v2(요약-carryover) 재부활**: AMI 긴 미팅에서 **B-mode 와 full-context 둘 다
+  미팅 후반부 경계를 통째로 놓침**(후반부 gold 의 ~89% 미검출, 18-subset·nitro·buffer 120; 8/18 미팅은 후반부 예측 0개).
+  원인 = **prompt 가 아니라 입력 길이** — SeCom 도메인(MTB+ ~65턴)에선 LLM 분절 F1 **0.91**(우리 레포 `ours_vs_llm_segmentation_pattern.md`),
+  AMI(400~1194턴)에선 붕괴. single-pass LLM 이 매우 긴 입력의 뒤를 잃음. → **v2(요약+버퍼)** 가 정답 후보: 매 청크를 짧게 유지(=SeCom
+  작동 길이 영역)하고 **SeCom 분절 출력의 segment summary 를 carryover**(별도 요약 콜 0). 입력 bounded → 후반부 커버 + latency·cost 유계.
+  프롬프트 = `baseline_segment_v2.md`(**v1 출력형식·partition 규율 그대로 + prior summaries + continues_previous 만 추가** = SeCom 충실).
+  nitro naive-프로토타입에서 tail 11%→~50%·F1 0.288→0.367·입력 8×↓ 확인. **확정 측정 결과(qwen-27b 18-subset, §3j)**: v2 는
+  latency·작은버퍼 F1 우위지만 **Pk/WD 약점으로 Score 가 v1/verbatim 에 뒤짐 → 최종 baseline = v1 채택, v2 는 개선 후보로 보류**(§3j D).
 
 **비교 3-메서드 명명 (확정)**:
 | 이름 | 정의 | look-ahead |
 |---|---|---|
 | **Hi-OnTop** | 임베딩 0-lag 온라인 분절기 (우리 방법) | 0 |
 | **LLM-Bsec** | 버퍼드 LLM online baseline(B-mode) — B초 checkpoint 마다 **누적 prefix [0,k_i] 전체** 재분절, **새 구간 [k_prev,k_i) 경계만** 채택, 합집합=최종. **B초 buffered(0-lag 아님)** | B초 |
+| **v2 요약-carryover** (후보 변형) | streaming — B초 checkpoint 마다 **(직전까지 segment summary) + 새 청크만** 입력, SeCom summary 재사용(별도 요약콜 0). 입력 bounded → 후반부 붕괴 완화·latency·cost 유계. 프롬프트 `baseline_segment_v2.md`. (B-mode=`baseline_segment_v1.md`=LLM-Bsec) | B초 |
 | **LLM-offline** | 전체 회의 1콜 full-context = offline upper-bound (`--buffer full`) | 무한 |
 
 - **operationalization (구현됨 — `secom_llm_eval.py` run_segment `--context B` 기본; `seg_checkpoints`)**: LLM-Bsec 위 정의대로.
   decision-delay = 0~B(평균 B/2)+inference. 이름에 B 명시(예 **LLM-Bsec-10s**) — 0-lag 아닌 **B초 delayed online** 으로 정직 표기.
   콜 수=checkpoint 수, **콜당 입력=누적 prefix → 토큰·latency·cost ~quadratic↑**(cost 지표 정직 반영). 구 A(독립 window)는 `--context A` 참고용.
-  offline 검증(mock): checkpoint 연속·[0,n] 커버·새구간 채택 정상. (codex gpt-5.5 자문 `codex_llm_buffered_design.md` 반영:
+  offline 검증(mock): checkpoint 연속·[0,n] 커버·새구간 채택 정상. (codex 자문 `codex_llm_buffered_design.md` 반영:
   main online=LLM-Bsec, offline upper-bound=LLM-offline. LLM-Bsec 은 0-lag 아닌 B초 delayed online 으로 명명, 비용 quadratic.)
 - incremental(턴마다 0-lookahead Yes/No)은 별개 online LLM 포인트(**LLM-incremental**)로 유지 — 3-메서드 명명과 별도.
 - **비-LLM 스트리밍 baseline 도 비교에 정식 포함**(§3h): **TextTiling / GraphSeg / GreedySeg / CSM**. 모두 online/streaming.
@@ -229,15 +245,97 @@ DTS 벤치(tiage/dialseg711/superseg) Score(`run_encoder_comparison.py`, `2026-0
   latency 는 mpnet 대비 **~50×↓**. → **MiniLM-int8 채택 정당화**(품질-latency 최적). δ* 는 인코더별 재보정 필요(한계).
 - ⚠️ 구 Hi-OnTop HP(de-neut 이전) 기준 — de-neut-cr 에서 인코더 재비교는 미실시(품질 결론은 인코더 상대순위로 전이 가정).
 
+### 3j. 프롬프트 ablation + streaming 모드 (18-subset, 2026-06-12) — REPORT 2종
+
+> **핵심 전환 (사용자 확정 2026-06-12)**: 비용 때문에 **"139 전수 품질먼저"(구 ⓑ)를 보류** → **18-subset 에서 품질+latency 를
+> 한 번에** 측정해 프롬프트·모드 먼저 확정. **139 품질표는 config 확정 후 나중에**(deferred, 폐기 아님). latency 는 18-subset 에서 **N=1 직렬**.
+
+**A. 프롬프트 ablation (baseline v1 vs SeCom verbatim)** — REPORT `outputs/experiments/2026-06-12_secom_prompt_ablation_ami18`
+- gpt-4o:nitro, 18-subset, seg full/120/60, temp0, **err0**(verbatim 버퍼 err 급증은 **예산 소진 아티팩트**였음 — 재충전·빈캐시제거·재실행으로 정정).
+- mean Score **v1 0.460 ≈ verbatim 0.470**(Δ0.01 = noise, 2개 미팅 견인, 미팅별 5승/4승/9무, granularity 7.4≈7.2). → **두 프롬프트 기능적 동등**;
+  "Exchange/user-bot" framing 이 AMI 에 이점 없음. (입력은 둘 다 동일 = 과거 전부 누적; 차이는 wording·라벨·key 뿐.)
+- 공통 실패모드(둘 다): 예측 경계 ~57% 노이즈(gold>5turn), tolerance ±5 F1 ~0.43, **긴 미팅 후반부 붕괴**. → 프롬프트 병목 아님, LLM 길이한계.
+- 코드 수정: 실패 응답 미캐시 + `[call-fail]` stderr 로깅(`secom_llm_eval.py`).
+
+**B. streaming 모드 (v1 B-mode vs v2 요약-carryover)** — REPORT `outputs/experiments/2026-06-12_llm_streaming_modes_ami18`
+- 후반부 붕괴 = **B-mode·full-context 공통**(후반부 gold 잡음 B-mode 11% / full 7%). 원인=입력 길이(§1B: MTB+ ~65턴 F1 0.91 vs AMI 붕괴).
+- C(carryover, `baseline_segment_v2.md`) nitro naive-프로토타입: tail **11%→50%**, F1 **0.288→0.367**, 입력 **8×↓**(B 69k→C 8.5k char), 과분절 없음.
+- **확정 측정 완료 (qwen-27b·18-subset·N=1 직렬, err0)**: 3방법(verbatim / **v1**(B-mode) / **v2**(요약-carryover)) × full/120/60.
+  스크립트 `scripts/measure_streaming_table.py`, 결과 `measure_results.json`(method key: `SeCom(verbatim)`=verbatim, `baseline(B-mode)`=v1, `csec(carryover)`=v2), raw `measure_table_qwen27b_run3.txt`.
+
+  | buffer | 방법 | ±2F1 | Pk↓ | WD↓ | **Score** | lat p50/p95(s) | 입력 max(char) |
+  |---|---|--:|--:|--:|--:|--:|--:|
+  | full | verbatim(SeCom) | 0.435 | 0.303 | 0.374 | 0.548 | 17.8 / 37.1 | 73,954 |
+  | full | **v1** | 0.440 | 0.298 | 0.372 | **0.552** | 17.5 / 29.1 | 69,021 |
+  | 120 | verbatim(SeCom) | 0.310 | 0.306 | 0.362 | 0.488 | 9.7 / 23.9 | 73,954 |
+  | 120 | **v1** | 0.356 | 0.321 | 0.390 | **0.500** | 10.2 / 27.7 | 69,021 |
+  | 120 | v2 | 0.329 | 0.429 | 0.528 | 0.426 | **4.3 / 10.8** | **20,682** |
+  | 60 | verbatim(SeCom) | 0.274 | 0.293 | 0.337 | 0.480 | 11.9 / 42.7 | 73,954 |
+  | 60 | **v1** | 0.288 | 0.292 | 0.352 | **0.483** | 9.8 / 28.3 | 69,021 |
+  | 60 | v2 | **0.328** | 0.424 | 0.511 | 0.430 | **3.8 / 10.1** | **24,357** |
+
+  - **Score: 전 버퍼 v1(B) 최고** (full 0.552 / 120 0.500 / 60 0.483), verbatim 전 구간 근소 우위. v2(C) 전 버퍼 최저.
+  - **F1: v2 경쟁력** — 60 에서 v2(0.328) > v1(0.288) > verbatim(0.274), 120 에선 v1(0.356) > v2(0.329) > verbatim(0.310).
+  - **v2 약점 = Pk/WD 집중**: v2 Pk 0.42~0.43 · WD 0.51~0.53 가 A/B(Pk ~0.29~0.32, WD ~0.34~0.39)보다 크게 나쁨 → Score 깎임.
+  - **v2 강점 = latency·입력**: per-call p50 **2~4×↓**(3.8~4.3s vs 9.8~17.8s), p95 더 극적(10s vs 28~43s), 입력 **3×↓**(bounded, 미팅 길이 무관).
+  - ⚠️ **재현 주의 — v2(carryover) 인덱스 버그**: 청크가 kp>0 에서 시작하는 carryover 에서 `E.fmt_exchanges`(로컬 0-기반 라벨)를 쓰면 경계가
+    글로벌과 어긋나 F1 0.099 로 깨짐. **글로벌 인덱스 포매터(`fmt_global`) 필수**. (B-mode 는 prefix 가 항상 0부터라 영향 없음.)
+
+  - ✅ **정렬 규약 확정 (2026-06-14, 데이터 검증)**: gold `bnd_top` 경계 = 새 topic의 **첫 turn**(= `topic_levels.start_turn`,
+    AMI 139미팅 중 135 정확일치·4 한칸차이·**0 불일치**로 검증). LLM `start_turn_number` 도 새 segment 첫 turn → **둘이 같은 규약 → shift 0(무이동)이 정식**.
+    `secom_llm_eval.PRED_SHIFT = 0`. **→ 위 §3j 표(shift0)는 정렬 면에서 이미 올바름 — 재채점 불필요.**
+    (한때 'gold=끝-turn' 오판으로 -1 가정했으나 데이터로 철회. sweep-max +1 은 LLM early-bias 산물 = cheating, 채택 안 함.)
+    ※ HANDOFF_04 의 -1 은 **signal(de-neut)** 정렬용 — signal 은 새-segment 첫 turn에서 한 박자 늦게 튀어 -1. LLM 은 직접 첫 turn을 출력하므로 해당 없음.
+
+**C. baseline 단일 확정 — 판정 기준 + 결과**
+- baseline 은 **후보 복수 불가 — 하나로 확정** (사용자 확정). 기준: **v2 가 ① 문제없음 ∧ ② v1 보다 나음 ∧ ③ verbatim 동등이상** → v2 확정; 미달 시 v2 업그레이드.
+- **판정 결과**: ① 문제없음 ✅(err0·동작·빠름; 초기 F1 0.099 는 위 인덱스 버그→수정). ② v2>v1 **❌ Score 미충족**(120 0.426<0.500, 60 0.430<0.483; F1 만 60 서 우위).
+  ③ v2≥verbatim **❌ Score 미충족**(120 0.426<0.488, 60 0.430<0.480; F1 만 양버퍼 우위). → **v2 는 ②③(Score) 미충족.**
+- **latency 공정 규칙**: **N=1 직렬(`workers=1`, 동시성 0)**. 동시호출은 경합으로 per-call latency 오염 → latency 측정엔 금지(품질은 동시 OK).
+  (측정 인프라: per-call 120s 타임아웃 = hung 콜 방지, v2-first 순서 = v2 우선 측정 보장.)
+
+**D. 최종 채택 (codex gpt-5.5 자문 `codex_baseline_decision`, 결과표 전체 전달)**
+- **최종 단일 baseline = v1 적응본 (`baseline_segment_v1.md`, B-mode 누적 = LLM-Bsec)**. 근거: Score 전 버퍼 최고 + verbatim 전 구간 우위 +
+  멀티파티 태스크 정의 부합. verbatim(SeCom원본)은 "원본 재현 baseline"으로만 의미(최종은 v1). 
+- **v2(요약-carryover)는 채택 보류 → 별도 low-latency streaming variant + 개선 후보**. v2 의 Pk/WD 손상 = 경계 개수·길이분포(calibration) 깨짐:
+  요약-only 가 boundary 단서(turn-level evidence) 소실 + 요약 누적 topic drift + 청크/요약 granularity mismatch → 과/과소분절.
+- **v2 개선 방향(codex)**: ① 요약 + **최근 raw turns(30~80)** 같이 carry, ② **segment 개수/rate prior + merge 규칙** 프롬프트 명시,
+  ③ **overlap window + reconcile**, ④ "사람용 요약" 대신 **segmentation state**(active topic·start/end·경계사유·open items) carry, ⑤ 후처리 length calibration.
+- **trade-off 기준(codex)**: baseline 확정은 **quality-first** — 주지표 Score, latency 는 tie-breaker(Score 근접 시만), latency 가 운영상 hard
+  constraint 일 때만 streaming 을 별도 baseline 으로 승격. → 본 표는 v2 latency 이점 크나 Score 손실도 커 B 채택이 방어적.
+- ⚠️ **단일 모델(qwen-27b)·18-subset·단일 run 예비** — 다른 모델 일반화 미검증(다른 모델서 v1/v2/verbatim 순위 뒤집힐 여지 한계로 명시).
+- **→ 다음 단계 (본 HANDOFF_02 내, 별도 handoff 아님)**: **전부 18-subset**(139 전수는 비용상 보류, 필요 시 최종 단계만).
+  확정 **LLM baseline = v1**(`baseline_segment_v1.md`, B-mode = LLM-Bsec). v2(요약-carryover)는 채택 보류 → **별도 개선 트랙 = HANDOFF_03**.
+  **incremental 제외(2026-06-13, 사용자)** — 비용(모델당 ~9h N=1) 대비 제외. (`baseline_incremental_v1.md` 는 보존하되 본 실험 미사용.)
+  지표 = **§2·§3z C 전체**(품질 + latency 3분할 + **메모리 2-표** + cost normalization + RTF + throughput + tolerance curve + bootstrap CI).
+  비용 구조: **품질 = 7모델 동시(빠름) / latency = N=1 직렬이라 우승 config 만**(전 모델×버퍼 직렬은 ~5일).
+
+**E. incremental (LLM-incremental) — 기록 (본 streaming 측정엔 미포함)**
+- **정의**: 턴마다 "직전 open segment + 새 turn = 같은 topic? **Yes/No**", No→경계·리셋. **0-look-ahead online**. 미팅 내부 순차(prev 결정 의존), 미팅·모델 병렬.
+- **프롬프트**: baseline 계열 `baseline_incremental_v1.md`(우리 작성, baseline_segment 구조 확장 = per-turn Yes/No), verbatim 계열 `segment_incremental.md`(SeCom 레포 원본).
+  **계보 다름**(우리 자체확장 vs SeCom 원본) → **controlled A/B 부적합**, 단일 operationalization 으로 제시(§1A disclosure). 출력예산 16tok, temp0, no-thinking.
+- ⚠️ **SeCom 정직성**: SeCom 헤드라인 분절법은 offline `segment_with_exchange_number`(논문이 iterative/streaming 을 latency 때문에 회피). `segment_incremental` 은 레포 secondary variant — 명시 표기.
+- **상태**: 본 18-subset streaming 표는 **segment 모드만**(SEG_ONLY). incremental 자체의 18-subset 측정은 미실행. 단 **`baseline_incremental_v1.md` 는
+  이미 v1(적응본) 계열** = 멀티파티 turn 기반 per-turn Yes/No 로 작성돼 있어 **확정 baseline(v1=`baseline_segment_v1.md`)과 정합 — 별도 "v1 스타일 정렬" 불필요**.
+  (carryover/v2 는 segment 전용이라 incremental 에 대응 변형 없음. 네이밍 통일이 필요하면 `baseline_incremental_v1.md` 로 rename 가능하나 선택사항.)
+- 워크로드: 18-subset incremental = 미팅별 턴수 순차 콜(139 전수 ≈62,539콜 대비 18미팅분).
+
 ## 3z. 확정 실험 사양 (codex 종합감사 2026-06-12 반영 — `codex_audit.md`)
 
 ### A. positioning / 통계 규율
 - 주장 = **"동일 online decision budget 에서 Pareto frontier 어느 지점이 우월한가"** (단순 "임베딩이 LLM 보다 쌈" ❌).
   보고는 single best-table 대신 **Pareto 곡선**: Score vs decision-delay / vs cost-per-hour / vs p95 latency.
-- **Score = 전체 84-그리드 139 전수(ⓑ 확정)**: selection 단계가 없으므로 selection-bias 문제 자체가 없음(전 조건을
+- **Score = 전체 84-그리드 139 전수(ⓑ)** — ⚠️ **순서 변경(2026-06-12, §3j 참조)**: 139 전수 품질은 **deferred**(프롬프트·모드를
+  18-subset 으로 먼저 확정한 뒤 그 config 로 139 품질표). 폐기 아님. selection 단계가 없으므로 selection-bias 문제 자체가 없음(전 조건을
   139에 그대로 보고). 별도 dev/test 분리 불필요. (구 37-dev subset 은 **quality 에 미사용**; latency-18 subset 만
   139 분포 재현용으로 파생.) latency 는 Score 결과 나온 뒤 **우수 config 만** 18-subset 에서 측정(★핵심).
 - paired bootstrap meeting-level CI. 버퍼 {10,30,60,120,full} 전부 139.
+- **decoding 결정성 + API 비결정성 disclosure (codex 자문 2026-06-12 반영)**: 전 LLM 은 **temperature 0(greedy)**
+  로 고정 = 모델 분포의 mode(최빈답) 보고, 단일 run 비교에서 sampling noise 최소화(temp↑ 는 분절 점수를 샘플링 운에 더
+  좌우시킴 — eval 부적합; 고온은 self-consistency 앙상블에서만 이득). **단 temp 0 이어도 API 서빙 특성(배칭·MoE 라우팅·
+  부동소수점)상 run 간 출력이 완전 동일하진 않음** → ⚠️ **limitations 에 "API 서빙상 완전 재현 보장 안 됨" 명시**. 보조로
+  **(가능하면) Score 우승 모델 1~2개를 18-subset 에서 N회(예 3~5) 재실행해 F1/Pk/WD 의 평균±std 보고**(decoding noise 규모
+  정량화, reviewer 방어). 주 결과는 temp 0 단일 캐시값 그대로.
 
 ### B. 공정 비교 조건 (must)
 - **latency 는 캐시·전처리 금지, live per-turn 임베딩.** Hi-OnTop = 발화 도착→그 자리서 encode(batch=1, no cache)
@@ -301,12 +399,14 @@ near-miss + meeting bootstrap CI + (가능시) IAA/human upper bound 인용 + di
 4. **139 비교 Pareto** 구성: Score(139) × latency(18-subset, 우수 config). 메서드 = Hi-OnTop / LLM-Bsec / LLM-offline /
    LLM-incremental + 비-LLM(TextTiling/GraphSeg/GreedySeg/CSM). (dev/test 분리 없음 — ⓑ.)
 5. **미측정 지표**: tolerance curve ±0~5, cost normalization, paired bootstrap CI, memory 2-표.
+5b. **decoding noise std (보조, §3z A)**: temp 0 잔여 API 비결정성 → limitations 명시 + Score 우승 모델 1~2개를
+   18-subset 에서 N회(3~5) 재실행해 F1/Pk/WD 평균±std 보고. (주 결과는 temp 0 단일.)
 6. **baseline 확장**: §3h 구현분 AMI Score + 현머신 latency 재측정 + fixed-thr/random + **local quantized LLM**(공정성 핵심).
 7. 12-ES pilot 폐기(편향). **Score=139 전수 보고**(37 subset quality 미사용, latency-18 만 139 파생).
 
 ## 5. 산출물
 - **LLM 분절 (현행)**: `secom_llm_eval.py`(SeCom incremental/segment, `--prompt baseline|verbatim`, 캐시·retry·concurrency),
-  `secom_sweep.sh`(84-run/subset resumable 드라이버, `--context B`), `secom_prompts/{baseline_segment,baseline_incremental,segment_exchange,segment_incremental}.md`.
+  `secom_sweep.sh`(84-run/subset resumable 드라이버, `--context B`), `secom_prompts/{baseline_segment_v1,baseline_segment_v2,baseline_incremental_v1,segment_exchange,segment_incremental}.md`.
   → 결과 `outputs/runs/_misc/secom_sweep_results.tsv`, 응답캐시 `secom_cache_*.jsonl`, 로그 `secom_sweep_logs/`.
 - **LLM latency (현행)**: `secom_latency_full.py`(실제 워크로드 fresh·N=1·모드별 정확 출력예산·RESUME
   `secom_latency_full.jsonl`, `--report`), `select_latency_subset.py`(**N=18** 139기준 KS 도출→`ami_latency_subset.json`),
@@ -317,7 +417,7 @@ near-miss + meeting bootstrap CI + (가능시) IAA/human upper bound 인용 + di
 - 스크립트(legacy/보조): `ami_llm_buffer_eval.py`(Score·CF헤더 배선), `ami_llm_segment_eval.py`(Score 배선),
   `select_ami_subset.py`(N=37 2D 층화), `plot_score_latency.py`(figure_S, LLM 자리 비움),
   `ami_deploy_failure_anatomy.py`, `ami_commit_refine_deploy.py`, `latency_streaming.py`(Hi-OnTop live).
-- **method 스펙**: `context/methodology/hi-ontop-cr.md`(canonical). **신호/oracle**: `handoff/HANDOFF_0609_deploy-oracle-gap.md`.
+- **method 스펙**: `context/methodology/hi-ontop-deneut.md`(canonical). **신호/oracle**: `handoff/HANDOFF_0609_deploy-oracle-gap.md`.
 - codex 자문: `outputs/runs/_misc/codex_expdesign.md`(지표 1차), `codex_audit.md`(종합감사, 반영완료 §3z).
 - subset: `outputs/runs/_misc/ami_subset.json`. figure: `outputs/figures/figure_S_score_latency.{pdf,png}`.
 - 인프라 caveat: Crts = Cloudflare Access 게이트웨이 뒤 → `.env` 에 `CF_ACCESS_CLIENT_ID/SECRET` 필요(인가됨).

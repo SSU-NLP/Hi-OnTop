@@ -19,7 +19,7 @@ src/hi_ontop/
 ├── sem_core_v4*.py        # v4.x 라인 (δ_eff / threshold / encoder swap / δ_model 탐색)
 ├── hi_ontop.py            # HiOnTop reduced form (δ_eff streaming, v4.1.x)
 ├── hi_ontop_v2.py         # adaptive μ+cσ threshold 변형
-├── hi_ontop_cr.py         # ★ main 분절 모델 — commit-and-refine + run-length 적응 β
+├── hi_ontop_deneut.py         # drift/AMI 분절 — de-neut+적응β 신호, threshold deploy (segment())
 ├── hi_ontop_lex.py        # lexical-overlap 보정 변형
 ├── next_embed_head.py     # v4.3.2 δ_model (next-embedding regressor)
 ├── event_rnn.py           # v3.3.1 GRU event model
@@ -53,14 +53,16 @@ tests/
 
 ## 진입점 (분절기)
 ```python
-from hi_ontop.sem_core import HiOnTopSegmenter   # 또는 hi_ontop.hi_ontop_cr.HiOnTopCR
+from hi_ontop.sem_core import HiOnTopSegmenter   # 또는 hi_ontop.hi_ontop_deneut.segment (drift/AMI)
 
 seg = HiOnTopSegmenter(alpha=1.0, lmda=10.0, sigma0_sq=0.01)
 for emb in turn_embeddings:           # turn 임베딩이 도착하는 대로
     is_boundary = seg.assign(emb)     # O(1)/turn, look-ahead 없음
 ```
 
-현재 main 분절 모델은 `hi_ontop_cr.HiOnTopCR` (2026-06-11 승격) — `context/methodology/hi-ontop-cr.md`.
+분절 모델: **DTS primary = `hi_ontop.HiOnTop`** (δ_eff), **drift/AMI = `hi_ontop_deneut.segment`**
+(de-neut+적응β 신호, threshold deploy; class 아님·함수). CR 은 DTS 미적합 — [[HANDOFF_04]] /
+decision-log 2026-06-13. methodology: `hi-ontop.md` / `hi-ontop-deneut.md`.
 
 ---
 
@@ -87,8 +89,8 @@ decision-log 2026-05-20 참조.
 src/hi_ontop/
 ├── hi_ontop.py       # HiOnTop — δ_eff streaming 모델 (v4.1.x reduced form). Hi-OnTop 파이프라인용 유지
 ├── hi_ontop_v2.py    # HiOnTopV2(HiOnTop) — adaptive μ+cσ threshold + adaptive_boundaries()
-├── hi_ontop_cr.py    # ★ promoted main 분절 모델 (2026-06-11): de-neut+적응β 신호 + commit-and-refine
-│                     #   deploy. segment(emb, reset='commit_refine'|'threshold'). methodology hi-ontop-cr.md
+├── hi_ontop_deneut.py    # drift/AMI 분절 (2026-06-11): de-neut+적응β 신호 + threshold(0-lag) deploy.
+│                     #   segment(emb). commit_refine 폐기(2026-06-13→archive). DTS 는 hi_ontop. hi-ontop-deneut.md
 └── hi_ontop_lex.py    # HiOnTopLex(HiOnTop) — lexical-overlap 보정 변형 (검증 대기, 2026-05-23)
 ```
 

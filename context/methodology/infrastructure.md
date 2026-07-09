@@ -178,6 +178,23 @@ git 정책: `outputs/experiments/<name>/REPORT.md`, `outputs/reports/*.md`, `out
 
 ---
 
+## online reset 벽 = 인코더-독립 + 판별자 정보-한계 (2026-06-20)
+
+- **무엇**: AMI online 화제분절의 oracle→deploy 격차(±2F1 0.71~0.77 vs 0.14)가 **표현(embedding) 한계가 아니라
+  online reset 결정 한계**임을 확정. spike 시점 onset/outlier 판별자 AUC ≈ 0.49(랜덤), 0-lag·1-lag 모두.
+- **어디**: 측정 `scripts/probe_encoder_wall.py <emb_subdir>`, 임베딩 생성 `scripts/gen_ami_emb_encoder.py`(로컬 ST)·
+  `scripts/gen_ami_emb_api.py`(Crts API). 캐시 `outputs/runs/_misc/{ami_emb(minilm-int8),ami_emb_mpnet(all-mpnet-base-v2),
+  ami_emb_te3large(text-embedding-3-large)}`. 채점 `src/hi_ontop/ami_scoring.py`.
+- **왜**: 정보-한계 결론([[HANDOFF_01]] §2.6)이 MiniLM-int8 하나로만 측정됐어 인코더-의존 가능성 미확인 → 3체급 비교로 falsify.
+- **행동 영향**: (1) **모든 method**(de-neut/V_rel/δ_eff deploy) — 더 강한 인코더로 deploy 천장 못 올림(oracle만 ↑).
+  인코더 교체로 reset 벽 해결 시도 금지. (2) **판별자 AUC 측정 시 per-row 단위정규화 필수** — 2D 배열에
+  `np.linalg.norm(e)`(Frobenius, 미팅별 스칼라) 쓰면 cross-meeting pooling 누수로 AUC 부풀려짐(옛 `ami_reset_transaction.load_ami::_nrm`
+  버그 = "1-lag AUC 0.665" 아티팩트, 실제 ≈0.52). per-meeting-mean AUC 또는 per-row 정규화로 측정.
+- **한계**: clean(gold-reset) oracle 0.69~0.77 은 유효(미팅-내). 다음 레버 = spike-gated LLM judge + label/state commit 분리
+  (codex 2026-06-20, [[HANDOFF_01]] §"축2 재공략"). lag/학습 판별자는 0-lag·no-train 제약상 별도 relaxation 트랙.
+
+---
+
 ## 작성 규칙
 
 새 인프라/cross-cutting 설계 항목 추가 시:

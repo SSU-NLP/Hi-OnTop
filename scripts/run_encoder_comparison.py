@@ -133,15 +133,18 @@ def boundaries(seq, dstar):
 
 
 def score_set(dialogs, deffs, dstar):
-    pks, wds, g, p = [], [], [], []
+    # 공식 SuperDialseg 규약: F1 도 Pk/WD 와 같이 **대화별 계산 후 평균** (per-dialogue).
+    # (이전엔 F1 만 corpus 풀링이라 비공식이었음 — HANDOFF_04. 풀링/per-dialogue 는
+    # dialseg711 에선 거의 동일하나 짧은-대화 데이터셋에서 갈릴 수 있어 공식으로 통일.)
+    pks, wds, f1s = [], [], []
     for (utts, yt), seq in zip(dialogs, deffs):
         yp = boundaries(seq, dstar)
         pk, wd = official_pk_wd(yt, yp)
-        pks.append(pk); wds.append(wd); g += yt; p += yp
-    f1 = float(f1_score(g, p, zero_division=0))
-    pk_m, wd_m = float(np.mean(pks)), float(np.mean(wds))
-    return dict(pk=pk_m, wd=wd_m, f1=f1,
-                score=0.5 * f1 + 0.25 * (1 - pk_m) + 0.25 * (1 - wd_m))
+        pks.append(pk); wds.append(wd)
+        f1s.append(float(f1_score(yt, yp, zero_division=0)))
+    pk_m, wd_m, f1_m = float(np.mean(pks)), float(np.mean(wds)), float(np.mean(f1s))
+    return dict(pk=pk_m, wd=wd_m, f1=f1_m,
+                score=0.5 * f1_m + 0.25 * (1 - pk_m) + 0.25 * (1 - wd_m))
 
 
 def best_score_dstar(dialogs, deffs):

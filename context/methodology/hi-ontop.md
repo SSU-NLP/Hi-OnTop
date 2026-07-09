@@ -145,10 +145,17 @@ SeCom-swap 의 segment 단계는 default 로 **Crts `/v1/embeddings` API**
 API 로 offload (encode ~0.9 s/turn CPU → ~0.11 s/turn API). `benchmarks/` 는
 읽기 전용.
 
-## AMI 도메인 + V_rel 상대신호 탐색 (2026-06-10 → 2026-06-11 승격: [[hi-ontop-cr]])
+## AMI 도메인 + V_rel 상대신호 탐색 (2026-06-10 → 2026-06-11 승격: [[hi-ontop-deneut]])
+
+> **★ 정정 (2026-06-13, [[HANDOFF_04]])**: 아래 탐색이 쓴 `ami_dts_*.py::oc()` harness 에 **경계
+> off-by-one 버그**가 있었다(신호 스파이크 t 를 gold t 에 비교; 정상은 끝-turn 규약 t→gold t-1).
+> 그 결과 **DTS 쪽 비교("de-neut > δ_eff", "superseg 벽 0.467 돌파")는 무효** — 공식 채점(SuperDialseg
+> `SegmentationEvaluation`)+정상정렬에서 **DTS 3개 전부 δ_eff > CR** (→ DTS primary 디폴트 = δ_eff =
+> `class HiOnTop`, 본 문서). **단 AMI 쪽(±2 metric)은 off-by-one 에 덜 민감, de-neut > δ_eff 유지** →
+> 아래 AMI 탐색·CR 의 drift 정당성은 살아있음. 상세 [[HANDOFF_04]] / decision-log 2026-06-13.
 
 > **상태 갱신 (2026-06-11)**: 본 탐색의 신호(de-neut + run-length 적응 β)와 drift deploy
-> (commit-and-refine)는 **[[hi-ontop-cr]] (`src/hi_ontop/hi_ontop_cr.py`) 로 정식 승격됨**(신호=universal
+> (commit-and-refine)는 **[[hi-ontop-deneut]] (`src/hi_ontop/hi_ontop_deneut.py`) 로 정식 승격됨**(신호=universal
 > calibration-free, commit-and-refine=drift deploy best Score 0.401/±2F1 0.140). **단 online deploy 의
 > oracle 격차(±2F1 0.140 vs 0.554)는 미해결 — "신호는 LLM급(oracle), online 실현은 구조적 천장"이라는
 > 정직한 한계 위에서 승격**(reset 기법 5각도 모두 격차 못 메움, decision-log 2026-06-11). 아래는 탐색 기록.

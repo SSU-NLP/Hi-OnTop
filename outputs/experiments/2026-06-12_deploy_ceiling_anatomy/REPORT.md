@@ -1,6 +1,6 @@
 # REPORT — Hi-OnTop deploy 천장 해부 (왜 oracle 격차가 안 메워지나)
 
-**날짜**: 2026-06-11~12 · **대상**: Hi-OnTop-CR online deploy 의 oracle 격차 정밀 진단
+**날짜**: 2026-06-11~12 · **대상**: Hi-OnTop-DeNeut online deploy 의 oracle 격차 정밀 진단
 **한 줄**: "정확히 왜 deploy 가 안 되나"를 계량. **(1) oracle 0.687 재현 확인**(LLM 초과 진짜), **(2) 병목 =
 online prototype 오염**(분별력 AUC 0.626→0.525, −0.10, 측정확정), **(3) 그러나 오염 회복도 신호/표현/판별기
 교체도 전부 실패** — per-turn 신호 margin 이 0.024 로 근본 약해, oracle(정답 엿봄)만 그 위에서 작동. deploy 천장
@@ -86,4 +86,4 @@ correct V_rel 신호, AUC(±2):
 ## 산출물
 - 스크립트: `ami_deploy_failure_anatomy.py`, `ami_summary_proto_oracle.py`, `ami_crossenc_deploy.py`,
   `ami_beam_deploy.py`. codex 자문: `outputs/runs/_misc/codex_recoverable_proto.md`.
-- 관련: [[hi-ontop-cr]], `2026-06-11_ami_commit_refine/REPORT.md`, decision-log 2026-06-11~12.
+- 관련: [[hi-ontop-deneut]], `2026-06-11_ami_commit_refine/REPORT.md`, decision-log 2026-06-11~12.

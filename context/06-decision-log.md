@@ -1418,10 +1418,10 @@ prototype 업데이트 rho 를 damp 축소) + recency(고정 rho) 추가(`segmen
 제거), 또는 v2(Score 0.401) ship + 격차 명시적 한계 문서화. 정식 hi_ontop 승격 보류 유지.
 REPORT: `outputs/experiments/2026-06-11_ami_commit_refine/REPORT.md`. [[2026-06-11]]
 
-## 2026-06-11 — Hi-OnTop-CR 정식 승격 (main 분절 모델)
+## 2026-06-11 — Hi-OnTop-DeNeut 정식 승격 (main 분절 모델)
 
 **결정**: de-neut + run-length 적응-β 신호(universal, calibration-free) + commit-and-refine drift deploy 를
-**정식 main 분절 모델로 승격** → `src/hi_ontop/hi_ontop_cr.py` `segment(emb, reset=...)`, methodology [[hi-ontop-cr]].
+**정식 main 분절 모델로 승격** → `src/hi_ontop/hi_ontop_deneut.py` `segment(emb, reset=...)`, methodology [[hi-ontop-deneut]].
 직전 보류([[hi-ontop]] 2026-06-10 "online deploy 격차로 승격 보류")를 **격차를 명시적 한계로 두고** 해제.
 
 **범위 (사용자 결정 2026-06-11)**: **신호=universal**(두 도메인), **commit-and-refine=drift(AMI) deploy reset**,
@@ -1440,12 +1440,96 @@ deploy 신기록). 신호는 oracle 천장에서 LLM 초과(AMI V_rel 0.687>0.54
 online 실현은 구조적 천장"이라는 정직한 스토리 위에서 승격. streaming 클래스(lagged emission) 통합은 scope 밖
 (δ_eff [[hi_ontop]] `class HiOnTop` 유지). 후속: (A,B)·m_min 자기보정 / streaming 설계.
 
-상세: [[hi-ontop-cr]], REPORT `outputs/experiments/2026-06-11_ami_commit_refine/REPORT.md`. [[2026-06-11]]
+상세: [[hi-ontop-deneut]], REPORT `outputs/experiments/2026-06-11_ami_commit_refine/REPORT.md`. [[2026-06-11]]
 
 **2026-06-11 추가 (m_min 검증 — open thread 마감)**: 승격 entry 에서 '유일 미검증 상수'였던 m_min 을 AMI k-fold
 CV 로 검증 — 5-fold train-선택 m\*=2 만장일치, held-out overfit gap 0, 민감도 m=1·2 ±2F1 동률(m=2 Score-best,
-m≥3 회귀). → **Hi-OnTop-CR 정식 config 전 상수(c·L·A·B·m_min) 검증 완료, 미검증 0개.** 잔여 open thread = streaming
+m≥3 회귀). → **Hi-OnTop-DeNeut 정식 config 전 상수(c·L·A·B·m_min) 검증 완료, 미검증 0개.** 잔여 open thread = streaming
 클래스(lagged emission) 통합뿐이며 이는 Hi-OnTop 파이프라인 scope-barred(현재 작업 범위 밖) — batch segment() 는 이미
-online 충족, 파이프라인 재개 시 buffer-and-flush wrapper 로 부착(codex 위임). [[hi-ontop-cr]]. [[2026-06-11]]
+online 충족, 파이프라인 재개 시 buffer-and-flush wrapper 로 부착(codex 위임). [[hi-ontop-deneut]]. [[2026-06-11]]
 
-**2026-06-12 — Hi-OnTop-CR default reset = `threshold` (0-lag) 로 변경**: 사용자 요구 = 버퍼/지연 원치 않음(다음 턴 즉시 emit). 측정(AMI 139, best-c by Score): threshold 0-lag Score 0.372 / commit_refine 의 0.401 은 **전적으로 lag 매입분**(L=4≈12s 0.379, L=8≈26s 0.401; L≤3 은 threshold 와 동급/이하). → `segment()` default 를 commit_refine→threshold 로. commit_refine 은 "버퍼(≥~12s) 허용 시 +0.029 옵션"으로 강등. DTS 는 원래부터 threshold. [[hi-ontop-cr]] §2 lag–Score 표. [[2026-06-12]]
+**2026-06-12 — Hi-OnTop-DeNeut default reset = `threshold` (0-lag) 로 변경**: 사용자 요구 = 버퍼/지연 원치 않음(다음 턴 즉시 emit). 측정(AMI 139, best-c by Score): threshold 0-lag Score 0.372 / commit_refine 의 0.401 은 **전적으로 lag 매입분**(L=4≈12s 0.379, L=8≈26s 0.401; L≤3 은 threshold 와 동급/이하). → `segment()` default 를 commit_refine→threshold 로. commit_refine 은 "버퍼(≥~12s) 허용 시 +0.029 옵션"으로 강등. DTS 는 원래부터 threshold. [[hi-ontop-deneut]] §2 lag–Score 표. [[2026-06-12]]
+
+**2026-06-13 — DTS 채점기 off-by-one 버그 발견 + 공식 채점기 확정 + CR 의 DTS 회귀 확정**:
+DTS 채점이 세 harness(SuperDialseg/Def-DTS/TIAGE)로 섞여 신뢰 깨짐을 추적하다, `scripts/ami_dts_*.py::oc()`
+가 **경계 정렬을 off-by-one** 으로 한다는 걸 발견. gold 규약 = segment **끝-turn**=1 (topic_id 가 다음 turn 에
+바뀌기 직전; tiage/dialseg711/superseg 데이터로 확인), δ_eff/임베딩 신호는 새 segment **첫 turn** 에서 솟으므로
+채점 시 **-1 매핑** 필요. oc() 는 신호[i] 를 gold[i] 에 직접 비교(shift 0) → DTS exact-F1 을 차별적으로 억눌러
+**"de-neut > δ_eff / superseg 벽 0.467 돌파" 라는 착시**를 만듦 (shift sweep, dialseg711 p80 pooled F1: shift-1=0.537,
+shift0=0.088, shift+1=0.220).
+
+- **공식 채점기 확정** = SuperDialseg `SegmentationEvaluation` (per-dialogue binary F1 + nltk Pk/WD(window=avg seg/2)
+  + Score, 끝-turn 정렬). 독립 검증: 공식 TextTiling 재현이 paper 와 소수 3째자리 일치 (tiage 0.363, dialseg711
+  0.382, superseg 0.467≈0.471). 코드: `src/hi_ontop/dts_scoring.py`(레포 클래스 래퍼) + `tests/test_dts_scoring.py`,
+  검증 `scripts/validate_official_scorer.py`. → [[HANDOFF_04]].
+- **per-dialogue F1 = 공식** (paper: "F1(binary), not macro; we only care about segmentation points"). 우리
+  `run_encoder_comparison.py::score_set` 는 F1 만 corpus 풀링이라 비공식이었음 → per-dialogue 로 교정.
+  (dialseg711 풀링 0.537 vs per-dialogue 0.541 — 영향 미미.)
+- **CR 의 DTS 회귀 확정**: 공식·정상정렬 재채점(MiniLM-int8, `scripts/dts_official_rescore.py`,
+  `outputs/experiments/2026-06-13_dts_official_rescore/`): δ_eff vs CR Score — tiage 0.465 vs 0.302, dialseg711
+  0.602 vs 0.367, superseg 0.340 vs 0.293. **DTS 3개 전부 δ_eff > CR.** HANDOFF_01 의 DTS 축1 결론은 무효.
+  → **DTS primary 디폴트 = δ_eff (`HiOnTop`)**, CR 은 DTS 미적합.
+- **CR 의 AMI 정당성은 유지**: AMI(±2 metric)는 off-by-one 에 덜 민감(±2 가 대부분 흡수). 정상정렬(shift-1)
+  per-meeting oracle ±2F1: **de-neut 0.370 > δ_eff 0.225** (shift 무관하게 de-neut 우위) → CR 의 drift/AMI
+  우위는 버그 산물이 아니라 실재. `scripts/ami_alignment_recheck.py`.
+- **dts_result.md 오기 정정**: offline TextTiling dialseg711 F1 0.425→**0.245**, Score 0.482→**0.382**
+  (paper 실제값; Pk/WD 0.470/0.493 는 맞음). [[HANDOFF_04]]. [[2026-06-13]]
+
+**2026-06-13 — `commit_refine` deploy 코드 제거 (폐기 확정)**: 2026-06-12 에 "버퍼 허용 시 옵션"으로 강등했던
+`commit_refine` 을 **코드에서 제거** (사용자: threshold 단독 지원). `hi_ontop_deneut.segment(emb)` = threshold(0-lag)
+단독, `DEFAULTS` 에서 L/m_min/Mc 제거, `_seg_commit_refine` → `archive/legacy_commit_refine/seg_commit_refine.py`
+(재현/참고용 보존). 테스트(`test_hi_ontop_deneut.py`) reset 파라미터화 제거, caller `ami_crossenc_deploy.py` 정리.
+근거: commit_refine 의 +0.029(0.401 vs 0.372) 우위가 전적으로 lag(L=8≈26s) 매입분이라 0-lag 요구와 충돌.
+methodology/architecture/README 갱신. [[hi-ontop-deneut]]. [[2026-06-13]]
+
+**2026-06-15 — AMI 채점기 확정 + "0.372" 정정 + c-tension 발견**:
+- **AMI 공식 채점기 확정** = `src/hi_ontop/ami_scoring.py` (= `scripts/ami_adaptive_deneut_deploy.py::ev` 와 parity Δ=0).
+  스펙: ±2 tolerant binary F1 + nltk Pk/WD(auto) + Score(0.5F1+0.25(1−Pk)+0.25(1−WD)), per-meeting 평균, **shift 0**
+  (AMI gold `bnd_top`=start-turn=depth-1 `topic_levels.start_turn`, 데이터 검증). DTS 채점기(HANDOFF_04)와 차이는 ±2F1·shift0 둘뿐. [[HANDOFF_04]] §6.
+- **★ "현 디폴트 AMI Score 0.372" 오기 정정**: 0.372 은 **best-c=1.5** (±2F1 0.106, pred 884). **현 디폴트 c=1.0 = Score 0.282**
+  (±2F1 0.131, pred 4105 = gold 938 의 ~4배 과분절). "Score 0.372 / ±2F1 0.131" 표기는 **c=1.5 Score + c=1.0 ±2F1 을 섞은 모순**
+  (어떤 c 에서도 동시 불성립; 출처 REPORT 표 lines 32-33 은 두 행으로 정확, 산문 line 61/81 이 섞음). dn.segment==원본 segment 검증(c=1.0 0.2817 / c=1.5 0.3717, byte-동일).
+- **c-tension (중요)**: **AMI(sparse, gold율 ~2%)는 높은 c(best 1.5), DTS(dense, gold율 14~24%)는 낮은 c(superseg 0/dialseg 0.75) 를 원함 — 정반대.**
+  c=경계밀도 조절기. **단일 고정 c=1.0 은 둘 다 비최적**(AMI 과분절 0.282 vs best 0.372, DTS 미분절). 적응-c(Otsu)는 AMI 과분절로 실패(−0.046).
+  밀도-매칭 적응-c 가 필요하나 online·calibration-free 로 미해결. [[HANDOFF_05]]. [[2026-06-15]]
+
+**2026-06-15 (정정) — clean-oracle 0.687 재확인 + "신호 한계" 결론 철회 (재구현 버그)**:
+- **버그**: 세션 중 작성한 clean-oracle 재구현(`cleanV`)과 `scripts/ami_deploy_failure_anatomy.py` 가 EWMA prototype 을
+  **매 step 정규화**(`m=nrm((1-rho)m+rho·x)`) 했다. 0.687 을 만든 원본 oracle 은 **raw EWMA(쓸 때만 정규화)**.
+  이 한 끗이 V_rel gold-reset oracle 을 **0.706→0.259** 로 깎아, "clean 신호도 약함(AUC 0.50)·0.687 은 아티팩트·
+  reset 헤드룸 ~0.07" 라는 **틀린 결론**을 낳았다. **전부 철회.**
+- **재확인 (raw-EWMA, 확정 채점기 `ami_scoring`, bnd_top, shift0)**: raw r_active **0.486**(REPORT 0.488) → V_rel per-meeting
+  oracle **0.706**(REPORT 0.687) → clean+단순 μ+cσ(c=2.0) **±2F1 0.626**(REPORT 0.554). **REPORT(2026-06-10) §3·§4 전부 재현.**
+  스크립트: `/tmp/repro_687.py`, `/tmp/clean_musigma.py`, `/tmp/deploy_rawewma.py`(→ `scripts/` 승격 예정).
+- **결론**: clean(gold-reset) 신호는 경계를 깨끗이 가른다(LLM급). deploy(detected-reset)는 raw/norm 무관하게 ±2F1 0.14~0.16 →
+  **진짜 병목 = online clean-reset 부트스트랩**(헤드룸 ~0.5), [[HANDOFF_01]] 가 처음부터 옳았음. de-neut/V_rel "신호 한계" 서술은
+  버그 산물이므로 docs 에서 무효 처리(HANDOFF_05 §5 정정 완료). [[HANDOFF_01]] [[HANDOFF_05]]
+
+**2026-06-15 — reset 부트스트랩 = 정보 한계로 종결 (시도 #7 transaction)**:
+- codex 설계 reset-as-transaction(가역 split: provisional→SPRT confirm/cancel, `scripts/ami_reset_transaction.py`) 실측 = 실패
+  (±2F1 0.006~0.09 < hard-reset 0.15). 진단(`scripts/ami_reset_discriminator_diag.py`)으로 원인이 **정보 한계**임을 확정:
+  (1) transaction confirm/cancel 의 true/false 취소율 동일(0.82/0.82 = 판별력 0);
+  (2) onset/outlier 판별자 AUC — 0-lag(FROZEN old 거리) **0.409(랜덤)**, τ-window 응집 **W=2 0.665 에서 포화 후 희석**
+      (codex 의 sqrt(M) 상승 예측 반증; 정보는 "스파이크 직후 1발화"에 집중);
+  (3) 최선 판별자(1-lag)를 deploy 로 써도 ±2F1 **0.133 ≈ baseline** (AUC 0.66 @ 5% base rate → F1 전환 안 됨).
+- **판정**: 새 화제 onset 과 화제 내 outlier 가 첫 발화에서 거의 구분 불가(고정 임베딩·무학습·5% base rate). reset 부트스트랩은
+  영리한 메커니즘으로 넘을 벽이 아니라 정보적으로 막힘. **8각도(A1~A5/BOCPD×2/EM/robust/commit-refine v1~v5/transaction) 전부
+  동일 한계 → reset 공략 종료.** AMI online deploy = "신호 LLM급(clean 0.69) / online reset 판별 정보-한계 ~0.15 천장"인
+  구조적 한계 도메인(논문 limit). 넘으려면 더 강한 임베딩/학습 판별자/lag 허용 중 하나(현 제약 위반). [[HANDOFF_01]] §2.6
+
+**2026-06-20 — reset 벽 인코더-독립 확정 + "1-lag 정보" 아티팩트 정정 + 방향(LLM-judge)**:
+사용자 지시로 [[HANDOFF_01]] online reset 벽 재공략. 세 결과 (전부 스크립트 재현, AMI 139, `ami_scoring` shift0 ±2tol):
+- **인코더-독립 (★ 직전 §2.6 "더 강한 임베딩이면 넘을 수 있다(제약 위반)" 정정)**: 인코더를 MiniLM-int8(384d)→
+  all-mpnet-base-v2(768d)→text-embedding-3-large(3072d, Crts API)로 키워도 **oracle V_rel 0.706→0.715→0.770 으로 오르나
+  deploy ±2F1 0.131→0.139→0.140 불변**, spike 판별자 AUC 0.49(랜덤) 유지. 강한 인코더는 oracle–deploy 격차를 오히려 벌림
+  (0.77 vs 0.14). → **병목은 표현(embedding)이 아니라 online reset 결정.** 인코더 축 종결(약한 int8 아티팩트 아님).
+  스크립트 `scripts/{probe_encoder_wall,gen_ami_emb_encoder,gen_ami_emb_api}.py`, 캐시 `outputs/runs/_misc/{ami_emb,ami_emb_mpnet,ami_emb_te3large}`.
+- **"1-lag 판별자 AUC 0.665" 아티팩트 정정**: §2.6 의 0.665 는 `ami_reset_transaction.load_ami::_nrm` 이 2D 배열에
+  per-row 아닌 **미팅별 Frobenius 스칼라(≈1/√n)** 로 나눠 생긴 cross-meeting pooling 누수. 미팅-내 정상 측정 시
+  **1-lag 도 ≈0.52(랜덤)** (per-row·per-meeting-mean 둘 다). → "1-lag 엔 판별 정보 있음" 무효, 0-lag·1-lag 모두 랜덤.
+  (clean oracle 0.69~0.77 은 gold-reset=미팅내라 유효, §2.6 deploy 결론 불변.)
+- **재구성**: 벽 = 0-lag 정보부재 아님(clean oracle 0.71~0.77 이 반증) = ① 비가역 commit/오염 + ② 첫발화 모호성(둘 다 인코더 무관).
+- **codex:rescue 방향 (high reasoning)**: 1순위 **spike-gated LLM binary judge**(~5% turn 만 raw text 판정, full-context LLM 천장 0.54)
+  + **★ label commit ↔ state reset 분리**(출력은 LLM, 내부는 H0/H1 이중상태로 오염 회피). cross-encoder=cascade 2순위.
+  lag/학습=별도 relaxation 트랙(main=strict 0-lag·no-train). negative result 는 LLM 0-lag judge 까지 실패해야 정당. 선결=spike 후보 recall 상한 측정.
+  상세 [[HANDOFF_01]] §"축2 재공략 (2026-06-20)".

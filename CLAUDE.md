@@ -39,8 +39,9 @@
      ephemeral status 는 handoff 가 아니라 구두 보고로. handoff 에는 *시도·조건·결과·설계 결정* 만 남긴다.
    필수 — 지정 문제로 **수록 가치 있는** 실험/시도를 하면 *반드시* 해당 handoff 를 갱신한다(실험 결과 REPORT
    규칙과 별개로, handoff 는 그 문제의 "선별된 시도 ledger" 역할).
-3. **위치/형식.** `handoff/` 폴더 1곳. 파일명 = **`HANDOFF_<MMDD>_<문제키워드>.md`**
-   (예: `HANDOFF_0612_realtime-llm-comparison.md`). 날짜=문제 지정일 MMDD(연도 생략), 키워드=kebab-case 핵심어.
+3. **위치/형식.** `handoff/` 폴더 1곳. 파일명 = **`HANDOFF_<순번>_<문제키워드>_<MMDD>.md`**
+   (예: `HANDOFF_02_realtime-llm-comparison_0612.md`). 순번=생성 순서 2자리 zero-pad(`01`,`02`…),
+   키워드=kebab-case 핵심어, 날짜=문제 지정일 MMDD(연도 생략).
 4. **자발적 남발 금지.** 사용자가 지정하지 않은 문제는 handoff 에 넣지 않는다. 한 문제의 시도가 다른 문제로
    번지면 **새 문제로 지정할지 사용자에게 묻고**, 지정 전엔 추가하지 않는다.
 
@@ -209,7 +210,7 @@ archive/                  # *의도적으로 폐기* 한 것만 (시간 흐름 �
 - topic state 의 모든 필드, hyperparameter default
 - SEM 계승 측면 (있는 것 / 없는 것 / 변형한 것)
 - 알려진 한계 + 변형 후보 (적용 안 했어도 "고려 중인 변형" 섹션에 누적)
-- cross-cutting 인프라 (`EncoderCache`, `HiOnTopConvCache`, encoder lock·int8 양자화, de-neut/δ_eff 신호 config, 적응 임계·reset(threshold/commit-refine)·버퍼 정책, LLM 호환 플래그(`--no-thinking`) 등)
+- cross-cutting 인프라 (`EncoderCache`, `HiOnTopConvCache`, encoder lock·int8 양자화, de-neut/δ_eff 신호 config, 적응 임계·reset(threshold; commit-refine 폐기 2026-06-13)·버퍼 정책, LLM 호환 플래그(`--no-thinking`) 등)
 
 규칙:
 - 버전마다 1 파일 (`vX.md`). 새 버전 추가 시 직전 버전 파일을 템플릿 삼아 같은 구조 유지.

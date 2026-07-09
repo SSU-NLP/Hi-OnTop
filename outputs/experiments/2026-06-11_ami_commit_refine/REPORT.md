@@ -59,6 +59,7 @@
   localization(±2F1) 불변. codex 가 핵심으로 짚은 "b* 이동 정정"을 v1 이 빠뜨린 결과.
 - **v2 가 움직인 이유**: split-gain argmax 로 spike 위치를 윈도우 내 최적 split 으로 이동 → ±2F1 0.131→0.140,
   Score 0.372→0.401. b* refinement 가 **누락분이 맞았음**을 실측 확인.
+  > ⚠ 정정(2026-06-15): 이 줄의 "0.372/0.131" 짝은 표(위)의 c=1.5 Score(0.372,±2F1 0.106)와 c=1.0 ±2F1(0.131,Score 0.282)을 섞은 표기. 표가 정확. [[HANDOFF_04]] §6 / decision-log 2026-06-15.
 - **v3 실패 원인 = recall 가설 반증**: shock gate 를 없애고 split-gain 상시 평가하면 recall(pred)은 늘지만
   precision 붕괴. raw 는 global 성분 지배로 항상 발화(δ_eff식 과분절), de-neut 도 shock gate 의 precision 없이
   과분절. **V>θ shock 감지가 주던 precision 이 실제로 유용** → gate 유지가 맞음.

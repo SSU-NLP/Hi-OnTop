@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """deploy 가 왜 안 되는지 *계량* — 추측 아닌 측정.
 
+⚠️ 버그 경고 (2026-06-15): 이 스크립트의 prototype 업데이트(아래 V_oracle/V_deploy 의
+`m = nr((1-rho)*m + rho*x)`)는 **매 step 정규화**다. raw-EWMA(`m=(1-rho)*m+rho*x`, 사용
+시점에만 정규화)와 달리 prototype 을 중립점으로 깎아 V 를 deflate 시킨다. 그래서 여기서
+나오는 **V_oracle AUC≈0.50 을 "clean 신호가 약하다"의 근거로 쓰면 안 된다 (버그 산물).**
+올바른 clean 신호는 raw-EWMA 로 oracle ±2F1 0.69 / 단순 μ+cσ 0.55~0.63 (LLM급).
+재현·대조: `scripts/ami_clean_oracle_repro.py [--norm-proto]`, decision-log 2026-06-15, HANDOFF_01 §2.6.
+
 세 가지를 잰다:
 1. operating point precision/recall 분해 (놓침 vs 헛경보 중 무엇이 주범인가).
 2. 신호 분별력 AUC: 진짜 경계 turn 의 V 가 비-경계보다 높은 확률.

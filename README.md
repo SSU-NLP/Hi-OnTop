@@ -53,7 +53,7 @@ Hi-OnTop/
 │   ├── sem_core.py               HiOnTopSegmenter.assign() — online MAP 루프
 │   ├── hi_ontop.py               HiOnTop reduced form (δ_eff streaming)
 │   ├── hi_ontop_v2.py            adaptive-threshold variant
-│   ├── hi_ontop_cr.py            commit-and-refine + run-length 적응 β (deploy)
+│   ├── hi_ontop_deneut.py            de-neut+적응β 신호, threshold deploy (drift/AMI; DTS는 hi_ontop)
 │   ├── hi_ontop_lex.py           TextTiling-style lexical variant
 │   ├── secom_adapter.py          SeCom 백엔드로 Hi-OnTop 분절기 주입
 │   ├── next_embed_head.py        v4.3.2 δ_model (next-embedding regressor)

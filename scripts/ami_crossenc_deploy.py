@@ -11,7 +11,7 @@ import sys, json, glob, pickle, argparse
 import numpy as np
 sys.path.insert(0, "scripts"); sys.path.insert(0, "src")
 from hi_ontop.hi_ontop_v2 import adaptive_boundaries
-from hi_ontop.hi_ontop_cr import segment
+from hi_ontop.hi_ontop_deneut import segment
 from run_encoder_comparison import delta_eff_seq, official_pk_wd
 
 TOPIC = "data/ami/topic"; AC = "outputs/runs/_misc/ami_emb"
@@ -77,17 +77,15 @@ def main():
         sc = ce.predict(pairs, batch_size=64, show_progress_bar=False) if pairs else []
         sig = [0.0] + [-float(s) for s in sc]      # 낮은 coherence = 높은 신호(=경계)
         ce_sigs.append(sig); golds.append(gold); ns.append(n)
-        segfns_cos.append(lambda c, e=e: segment(e, reset="threshold", c=c))
+        segfns_cos.append(lambda c, e=e: segment(e, c=c))
         segfns_deff.append(lambda c, e=e: [i for i, b in enumerate(
             adaptive_boundaries(list(delta_eff_seq(e)), c=c, mode="ewma")) if b])
         print(f"  {mid} done (n={n})", flush=True)
 
-    # commit-refine(de-neut, drift deploy)도 포함
-    segfns_cr = [lambda c, e=e: segment(e, reset="commit_refine", c=c) for *_, e in metas]
+    # commit_refine 폐기(2026-06-13) — threshold deploy 단독.
     rows = [
         ("δ_eff cosine", best_c_metrics(segfns_deff, golds, ns, is_sig=False)),
         ("de-neut cosine (threshold)", best_c_metrics(segfns_cos, golds, ns, is_sig=False)),
-        ("de-neut commit-refine", best_c_metrics(segfns_cr, golds, ns, is_sig=False)),
         ("cross-encoder coherence", best_c_metrics(ce_sigs, golds, ns, is_sig=True)),
     ]
     print("\n=== deploy (best-c by Score, 같은 미팅·적응임계) ===")

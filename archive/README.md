@@ -13,6 +13,7 @@
 - **2026-04-29/** (2026-04-29, 14 runs): 같은 사유로 폐기.
 - **2026-04-30/** (2026-04-30, 1 run): Phase 4 마지막 시도, 폐기.
 - **legacy_sem_ablation/** (2026-05-22): v4.1.3 의 full SEM2 form (`sem_core_v413.py`). 2026-05-22 실증 audit 으로 v4.1.3 default/canonical setting 의 SEM2 machinery (per-topic EventRNN / f0·restart·re-entry / scaled-inv-χ² variance / sticky-CRP α 및 default λ) 가 출력에 영향 없음이 확인됨 — `_fresh_baseline_for_prev` 의 prior-cancel 설계로 repeat-vs-fresh 결정이 `δ_eff < δ*` 로 환원. 단 낮은 `lmda` 값은 archived full form 에서 일부 출력 차이를 낼 수 있어 전역 dead 로 보지 않는다. main 모델은 `src/hi_ontop/hi_ontop.py` (`HiOnTop`, reduced form, matched-HP byte-identical 검증) 로 대체. 이 파일은 **삭제 아님 — audit 재현용 ablation 증거물** 로 보존 (paper 의 "we implemented and audited SEM2-style ... found degenerate" disclosure 근거). decision-log 2026-05-22 참조.
+- **legacy_commit_refine/** (2026-06-13): Hi-OnTop-DeNeut 의 `commit_refine` deploy (`_seg_commit_refine` → `seg_commit_refine.py`). bounded-lag commit-and-refine + split-gain b\* refinement. AMI Score 0.401 까지 올렸으나 **그 +0.029 우위가 전적으로 lag(L=8≈26s) 매입분**(L≤3 은 threshold 와 동급/이하)이라 0-lag 운영 요구와 충돌 → 폐기. `hi_ontop_deneut.segment` 는 `threshold`(0-lag) deploy 단독으로 정리. 삭제 아님 — 재현/참고용. decision-log 2026-06-12(강등)·2026-06-13(코드 제거).
 
 ## archive 에 들어오지 않는 것
 

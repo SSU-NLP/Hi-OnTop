@@ -5,6 +5,14 @@
 정직히 표기**하고 (paper 인용 / 우리 측정 / pending), harness 차이 (데이터·
 metric) 가 있는 비교는 footnote 로 명시한다.
 
+> **정정 (2026-06-13, [[HANDOFF_04]] / decision-log 2026-06-13)**:
+> - **채점 기준 = SuperDialseg 공식** `SegmentationEvaluation` (per-dialogue binary F1 + nltk
+>   Pk/WD + Score) 로 통일. "Ours" 행의 F1 은 이전에 corpus 풀링(비공식)이었고 → per-dialogue
+>   로 교정 (`run_encoder_comparison.score_set`). dialseg711 영향 미미(0.537→0.541). 공식 채점기
+>   확정·검증은 `src/hi_ontop/dts_scoring.py` / `scripts/validate_official_scorer.py`.
+> - **오기 정정**: offline TextTiling **dialseg711** F1 0.425→**0.245**, Score 0.482→**0.382**
+>   (paper 실제값, 공식 재현으로 확인). Pk/WD(0.470/0.493)·tiage·superseg 는 정상.
+
 ## 0. 인코더 설정 (Hi-OnTop)
 
 세 가지 sentence encoder 비교 (속도 ↔ 표현력 trade-off):
@@ -173,7 +181,7 @@ calibration 결과 참조 (중복 보관 회피).
 
 \multirow{6}{*}{\textbf{Offline}}
 & \multirow{4}{*}{\textit{Unsupervised}}
-& TextTiling$^{\dagger}$ & 0.469 & 0.488 & 0.204 & 0.363 & 0.470 & 0.493 & 0.425 & 0.482 & 0.441 & 0.453 & 0.388 & 0.471 & -- & -- \\
+& TextTiling$^{\dagger}$ & 0.469 & 0.488 & 0.204 & 0.363 & 0.470 & 0.493 & 0.245 & 0.382 & 0.441 & 0.453 & 0.388 & 0.471 & -- & -- \\
 & & GraphSeg$^{\dagger}$  & 0.496 & 0.515 & 0.238 & 0.366 & 0.412 & 0.442 & 0.392 & 0.483 & 0.450 & 0.454 & 0.249 & 0.398 & -- & -- \\
 & & GreedySeg$^{\dagger}$ & 0.469 & 0.506 & 0.181 & 0.341 & 0.381 & 0.410 & 0.445 & 0.525 & 0.490 & 0.494 & 0.365 & 0.437 & -- & -- \\
 & & CSM$^{\dagger}$       & 0.400 & 0.420 & 0.427 & 0.509 & 0.278 & 0.302 & 0.610 & 0.660 & 0.462 & 0.467 & 0.381 & 0.458 & -- & -- \\
@@ -237,7 +245,7 @@ CSM-Style row: \texttt{methods/CSM/cpt\_277000.pth} (lxing532 CoherenceNet, bert
 
 | Supervision | Method | TIAGE Pk | WD | F1 | **Score** | DS711 Pk | WD | F1 | **Score** | SDS Pk | WD | F1 | **Score** |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Unsup. | TextTiling$^†$ | 0.469 | 0.488 | 0.204 | 0.363 | 0.470 | 0.493 | 0.425 | 0.482 | 0.441 | 0.453 | 0.388 | 0.471 |
+| Unsup. | TextTiling$^†$ | 0.469 | 0.488 | 0.204 | 0.363 | 0.470 | 0.493 | 0.245 | 0.382 | 0.441 | 0.453 | 0.388 | 0.471 |
 | Unsup. | GraphSeg$^†$ | 0.496 | 0.515 | 0.238 | 0.366 | 0.412 | 0.442 | 0.392 | 0.483 | 0.450 | 0.454 | 0.249 | 0.398 |
 | Unsup. | GreedySeg$^†$ | 0.469 | 0.506 | 0.181 | 0.341 | 0.381 | 0.410 | 0.445 | 0.525 | 0.490 | 0.494 | 0.365 | 0.437 |
 | Unsup. | CSM$^†$ | 0.400 | 0.420 | 0.427 | 0.509 | 0.278 | 0.302 | 0.610 | 0.660 | 0.462 | 0.467 | 0.381 | 0.458 |

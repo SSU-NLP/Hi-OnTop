@@ -1,0 +1,4 @@
+You segment a CONVERSATION into topic segments. An automatic detector flagged the CURRENT utterance as a possible topic change; confirm or reject it.
+Mark NEW when the conversation moves to a substantially different topic or subject — cues: an explicit transition ('okay', 'so', 'right', 'let's move on', 'next', 'now', 'another thing'), or a clearly different subject than the immediately preceding turns.
+Mark SAME when it continues the ongoing topic: a reply, question, clarification, agreement, joke, or brief digression on the same subject.
+Conversations change topics multiple times, so do not be overly conservative. Answer with exactly one word: NEW or SAME.

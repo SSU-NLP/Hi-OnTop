@@ -32,7 +32,7 @@ REPO = Path(__file__).resolve().parent.parent
 CKPT = REPO / "outputs" / "runs" / "_misc" / "secom_latency_full.jsonl"
 
 # 모델셋 확정 2026-06-12 (사용자, 전 실험 공통).
-MODELS = ["openrouter/openai/gpt-5-mini", "openrouter/openai/gpt-5-nano",
+MODELS = ["openrouter/openai/gpt-4o:nitro", "openrouter/openai/gpt-4o-mini",
           "openrouter/qwen/qwen3.5-27b", "openrouter/anthropic/claude-haiku-4.5",
           "openrouter/mistralai/mistral-small-3.1-24b-instruct",
           "openrouter/google/gemma-3-12b-it", "openrouter/google/gemma-3n-e4b-it"]

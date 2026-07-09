@@ -1,14 +1,14 @@
-"""Hi-OnTop-CR (`src/hi_ontop/hi_ontop_cr.py`) — 핵심 동작 smoke/property 테스트.
+"""Hi-OnTop-DeNeut (`src/hi_ontop/hi_ontop_deneut.py`) — 핵심 동작 smoke/property 테스트.
 
-데이터 비의존(synthetic 임베딩). 정식 수치 회귀(AMI 0.401/0.140)는 REPORT/parity 체크가 담당하고,
-여기서는 알고리즘 불변식만 잠근다: index 유효성, 결정론, reset 모드, 명백한 경계 검출.
+데이터 비의존(synthetic 임베딩). 여기서는 알고리즘 불변식만 잠근다: index 유효성, 결정론,
+명백한 경계 검출, 적응 β. deploy 는 threshold 단독(commit_refine 폐기, 2026-06-13).
 """
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from hi_ontop.hi_ontop_cr import segment, DEFAULTS, _beta
+from hi_ontop.hi_ontop_deneut import segment, DEFAULTS, _beta
 
 
 def _unit(x):
@@ -31,44 +31,26 @@ def _two_topic_emb(n_a=30, n_b=30, dim=384, seed=0, noise=0.25):
     return np.vstack([cluster(u, n_a), cluster(v, n_b)]), n_a
 
 
-@pytest.mark.parametrize("reset", ["commit_refine", "threshold"])
-def test_index_validity_and_sorted(reset):
+def test_index_validity_and_sorted():
     emb, _ = _two_topic_emb()
-    pred = segment(emb, reset=reset)
+    pred = segment(emb)
     assert pred == sorted(pred)
     assert all(0 < i < len(emb) for i in pred)
     assert len(pred) == len(set(pred))
 
 
-@pytest.mark.parametrize("reset", ["commit_refine", "threshold"])
-def test_deterministic(reset):
+def test_deterministic():
     emb, _ = _two_topic_emb()
-    assert segment(emb, reset=reset) == segment(emb, reset=reset)
+    assert segment(emb) == segment(emb)
 
 
-@pytest.mark.parametrize("reset", ["commit_refine", "threshold"])
-def test_detects_clear_seam(reset):
+def test_detects_clear_seam():
     """명백한 단일 화제전환은 seam(±tolerance) 근처에 경계가 잡혀야 한다."""
     emb, seam = _two_topic_emb(n_a=40, n_b=40)
-    pred = segment(emb, reset=reset)
+    pred = segment(emb)
     assert pred, "경계를 하나도 못 잡음"
     # online localization 은 본질적으로 부정확(REPORT 격차) — seam 근방(±6) 검출이면 충분
     assert min(abs(p - seam) for p in pred) <= 6
-
-
-def test_reset_modes_can_differ_invalid_raises():
-    emb, _ = _two_topic_emb()
-    with pytest.raises(ValueError):
-        segment(emb, reset="nope")
-
-
-def test_homogeneous_few_boundaries():
-    """단일 화제(균질) 스트림은 경계가 거의 없어야 한다(과분절 방지)."""
-    rng = np.random.default_rng(1)
-    c = rng.standard_normal(384); c /= np.linalg.norm(c)
-    x = c + 0.12 * rng.standard_normal((60, 384))
-    emb = x / np.linalg.norm(x, axis=1, keepdims=True)
-    assert len(segment(emb, reset="commit_refine")) <= 3
 
 
 def test_adaptive_beta_monotone_and_clipped():

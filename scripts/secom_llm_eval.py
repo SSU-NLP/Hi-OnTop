@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SeCom (Microsoft, ICLR2025) canonical 프롬프트 LLM 분절 baseline.
 
-두 모드 — SeCom 실제 instruction(`scripts/secom_prompts/`) 사용:
+두 모드 — SeCom 실제 instruction(`scripts/segmentation_prompts/`) 사용:
 - **incremental** (online, 0-look-ahead): 턴마다 "직전 session + 새 turn = 같은 topic? Yes/No".
   No → 경계. 미팅 내부는 순차(prev_session 이 과거 결정에 의존), 미팅·모델 간 병렬.
 - **segment** (exchange-number JSONL): 청크(전체 회의=oracle 또는 B초 window=buffer)를 한 번에 세그먼트.
@@ -28,11 +28,11 @@ from run_encoder_comparison import official_pk_wd
 REPO = Path(__file__).resolve().parent.parent
 load_dotenv(REPO / ".env")
 TOPIC = REPO / "data" / "ami" / "topic"
-PDIR = REPO / "scripts" / "secom_prompts"
+PDIR = REPO / "scripts" / "segmentation_prompts"
 # 우리 baseline(DTS 2-party + AMI 멀티파티 공통, turn 기반) 기본 — SeCom segment_turn 구조를
 # online incremental 로 확장. --prompt verbatim 으로 SeCom 원본 그대로.
 PROMPTS = {
-    "baseline": ("baseline_segment.md", "baseline_incremental.md", "Turn"),
+    "baseline": ("baseline_segment_v1.md", "baseline_incremental_v1.md", "Turn"),
     "verbatim": ("segment_exchange.md", "segment_incremental.md", "Exchange"),
 }
 P_SEG = ""; P_INC = ""; LABEL = "Turn"; STRICT = False
@@ -85,7 +85,7 @@ class Caller:
         with self.lock:
             if key in self.cache:
                 return self.cache[key]
-        txt = ""; rf = response_format
+        txt = ""; rf = response_format; ok = False
         for attempt in range(4):
             try:
                 kw = {"response_format": rf} if rf else {}
@@ -95,17 +95,20 @@ class Caller:
                     extra_body={"reasoning": {"enabled": False}}, **kw)
                 m = r.choices[0].message
                 txt = m.content or getattr(m, "reasoning_content", None) or ""
+                ok = True
                 break
-            except Exception:
+            except Exception as e:
                 if rf is not None:        # response_format 미지원/실패 → prompt-only strict 로 강등 후 재시도
                     rf = None; continue
                 if attempt == 3:
                     with self.lock:
                         self.errs += 1
+                    sys.stderr.write(f"[call-fail] {self.model} {type(e).__name__}: {str(e)[:300]}\n")
                 else:
                     time.sleep((2 ** attempt) * 0.5 + random.random())
         with self.lock:
-            self.cache[key] = txt; self.cf.write(json.dumps({"k": key, "t": txt}) + "\n"); self.cf.flush()
+            if ok:   # 실패(예외)는 캐시하지 않음 → 빈값 poison 방지, 다음 실행에서 자동 재시도
+                self.cache[key] = txt; self.cf.write(json.dumps({"k": key, "t": txt}) + "\n"); self.cf.flush()
         return txt
 
 
@@ -182,7 +185,14 @@ def load_meetings(subset):
     return out
 
 
+# 원칙적 정렬(2026-06-14, 데이터 확정): gold bnd_top 경계 = 새 topic의 *첫 turn*(=topic_levels.start_turn,
+# 139미팅 중 135 정확일치·0 불일치로 검증). LLM start_turn_number 도 새 segment 첫 turn → *같은 규약* → shift 0.
+# (sweep-max +1 은 LLM early-bias 산물 = cheating, 채택 안 함. 직전 -1 가정은 'gold=끝-turn' 오판으로 철회.)
+PRED_SHIFT = 0
+
+
 def metrics(gold, pred, n):
+    pred = [p + PRED_SHIFT for p in pred if p + PRED_SHIFT >= 0]
     yt = [1 if i in set(gold) else 0 for i in range(n)]
     yp = [1 if i in set(pred) else 0 for i in range(n)]
     f2 = tol_f1(gold, sorted(pred)); pk, wd = official_pk_wd(yt, yp)

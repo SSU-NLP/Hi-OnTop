@@ -35,7 +35,7 @@ def main():
         enc.encode([txt], normalize_embeddings=True)
 
     # === warm steady-state: turn 단위 live encode latency (전 subset) ===
-    from hi_ontop.hi_ontop_cr import _deneut, _beta, _nr   # segment step 비용 측정용
+    from hi_ontop.hi_ontop_deneut import _deneut, _beta, _nr   # segment step 비용 측정용
     enc_ms = []           # per-turn encode latency
     seg_ms = []           # per-turn segment-step latency
     rtfs = []
