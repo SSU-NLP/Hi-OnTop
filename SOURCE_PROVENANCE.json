@@ -1,0 +1,20 @@
+{
+  "project": "Hi-OnTop",
+  "paper_file": "_EMNLP_2026.pdf",
+  "paper_sha256": "aa15644e6a0ca5f5fbfb1f2ec986ea27af9679809a661e0da7d25fcc263a5201",
+  "original_repositories": {
+    "Hi-EM/dts": "7caefbae5365af254b2ff6455c6e6879a3867656",
+    "Hi-OnTop/main": "3a09736c8553a972abb5cbaff9019edc54e6a404"
+  },
+  "source_repository_after_rename": "SSU-NLP/SITUATE",
+  "source_commit": "3a09736c8553a972abb5cbaff9019edc54e6a404",
+  "changes": "Independent package, CLI, validation and paper/pretrained distinction; see PAPER_ALIGNMENT.md",
+  "files": {
+    "src/hi_ontop/__init__.py": "78c59724bf1a95f797ecac56f649617a4fb20537b46da700222cbe455caa9cd3",
+    "src/hi_ontop/cli.py": "059007f44a592a11a444d50a4fd9a4a87895797fd8121fe70aadb0af311ffed6",
+    "src/hi_ontop/hi_ontop.py": "9072987dc6eb1ed244d74d38034ccdb041f0cbfba66c21bb89219168e372873c",
+    "src/hi_ontop/metrics.py": "53f86521421b323057041dfd4ec34317fefb0a3eb89fb67f3d9242b093f718ab",
+    "src/hi_ontop/pipeline.py": "7466259990d5e8213966c53da3b33886bedf3187a1973b74c790b34a65ae7d83",
+    "src/hi_ontop/secom_adapter.py": "d1dc00ee6dfda245acdeb6675d6bccc33371a2c7605193cadf788d6f2c703092"
+  }
+}
